@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32">
+  <!--
+    Favicon: la marca sobre la tinta, no al revés.
+    A 16px un dibujo de líneas finas sobre fondo blanco desaparece entre las
+    pestañas; con el fondo oscuro se reconoce de reojo, que es lo único que
+    un favicon tiene que lograr. Por eso también van dos renglones y no
+    tres: a ese tamaño el del medio es una mancha.
+  -->
+  <rect width="24" height="24" rx="5.5" fill="#17130E"/>
+  <g fill="none" stroke="#F9F7F4" stroke-width="1.5">
+    <rect x="5" y="4.2" width="14" height="15.6" rx="1"/>
+    <path d="M5 13.6h14"/>
+  </g>
+  <g fill="none" stroke="#F9F7F4" stroke-width="1.3" stroke-linecap="round">
+    <path d="M7.4 15.9h6.2"/>
+    <path d="M7.4 18h6.2"/>
+  </g>
+  <circle cx="16.3" cy="15.9" r="1.1" fill="#E01B22"/>
+</svg>

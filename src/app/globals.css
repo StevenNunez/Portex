@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+:root {
+  --px-bone:   oklch(0.985 0.005 85);
+  --px-paper:  oklch(0.975 0.006 85);
+  --px-ink:    oklch(0.18 0.01 60);
+  --px-ink2:   oklch(0.30 0.01 60);
+  --px-mid:    oklch(0.55 0.008 60);
+  --px-mid2:   oklch(0.70 0.006 60);
+  --px-line:   oklch(0.92 0.005 60);
+  --px-line2:  oklch(0.96 0.004 60);
+  --px-ok:     oklch(0.68 0.16 145);
+  --px-alert:  oklch(0.62 0.20 28);
+  /* El rojo del logo. Es más vivo y más cálido que --px-alert a propósito:
+     en la app el rojo significa "salida", y la marca no puede leerse como
+     una alerta permanente. */
+  --px-mark:   oklch(0.58 0.23 27);
+  --px-mark-dark: oklch(0.68 0.24 27);
+}
+
+html, body {
+  background: var(--px-bone);
+  color: var(--px-ink);
+  font-family: var(--font-inter-tight), "Inter", system-ui, sans-serif;
+  letter-spacing: -0.005em;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Espera del citófono: el conserje mira este círculo mientras la unidad decide */
+@keyframes px-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

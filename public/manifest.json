@@ -1,0 +1,25 @@
+{
+  "name": "Portex · Mi edificio",
+  "short_name": "Portex",
+  "description": "Autoriza quién sube a tu departamento, antes o en el momento.",
+  "start_url": "/residente",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f2ec",
+  "theme_color": "#17130e",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

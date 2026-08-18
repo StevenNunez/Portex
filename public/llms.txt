@@ -1,0 +1,16 @@
+# Portex
+
+Portex es un sistema de control de acceso para condominios y edificios en Chile.
+Reemplaza el cuaderno de portería, las planillas de Excel y los grupos de WhatsApp.
+
+Qué hace hoy:
+- Portería: registra visitas, entregas, proveedores y salidas en menos de diez segundos.
+- Citófono digital: le avisa al departamento quién está abajo y la visita entra solo si la unidad autoriza. Queda escrito quién autorizó.
+- Pase con QR: el residente anuncia a su visita y en portería se escanea el QR o se dicta un código de 6 dígitos.
+- Encomiendas: se recepcionan con dueño y se entregan contra código o QR, así queda registrado quién se llevó el paquete.
+- Estacionamientos de visita, incluidos los que un residente presta mientras no usa el suyo.
+- Asistencia del personal: jardinero, aseo y mantención marcan con su RUT; el administrador ve horas y atrasos.
+- Avisos del edificio: cortes de agua, ascensor en mantención, el proveedor que llegó a trabajar.
+
+Quién lo hace: Teo Labs (https://www.teolabs.app). Contacto: portex@teolabs.app
+Estado: en marcha blanca, sin cobro mientras dure.

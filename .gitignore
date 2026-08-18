@@ -1,0 +1,47 @@
+# ── Dependencias y build ────────────────────────────────────────
+/node_modules
+/.next
+/out
+/build
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# ── Secretos ────────────────────────────────────────────────────
+# .env.local tiene el SUPABASE_SERVICE_ROLE_KEY, la VAPID_PRIVATE_KEY
+# y la clave del correo saliente. Nunca al repo.
+.env
+.env*.local
+.env.production
+!.env.example
+
+# ── Plataforma ──────────────────────────────────────────────────
+.vercel
+
+# ── Material de trabajo, no de producción ───────────────────────
+# El bundle de diseño incluye los chats con la IA (design_bundle/chats/).
+# Nada de esto hace falta para que la app compile ni corra.
+/design_bundle
+design.tar.gz
+design_extracted.html
+
+# Configuración local de Claude Code e instrucciones del asistente.
+# AGENTS.md lo re-escribe `next dev` en cada arranque: fuera del repo no
+# aparece como cambio pendiente y no publica instrucciones internas.
+/.claude
+CLAUDE.md
+AGENTS.md
+PLAN.md
+
+# ── Datos de prueba ─────────────────────────────────────────────
+# Los seeds del tenant demo crean usuarios con clave en texto plano
+# (PortexDemo2026). Se corren a mano desde el SQL Editor; no se publican.
+supabase/seed_demo*.sql
+supabase/fix_demo_ruts.sql
+
+# ── Sistema operativo y editores ────────────────────────────────
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.idea
+.vscode
