@@ -22,13 +22,13 @@ const PERIODOS = [
 ] as const;
 
 function hora(iso: string) {
-  return new Date(iso).toLocaleTimeString("es-CL", {
+  return new Date(iso).toLocaleTimeString("es-CL", { timeZone: "America/Santiago",
     hour: "2-digit", minute: "2-digit", hour12: false,
   });
 }
 
 function fecha(d: string) {
-  return new Date(d + "T12:00:00").toLocaleDateString("es-CL", {
+  return new Date(d + "T12:00:00").toLocaleDateString("es-CL", { timeZone: "America/Santiago",
     weekday: "short", day: "numeric", month: "short",
   });
 }

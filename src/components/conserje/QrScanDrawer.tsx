@@ -45,7 +45,7 @@ const MONO: React.CSSProperties = {
 type EstadoCamara = "iniciando" | "activa" | "sin_permiso" | "sin_camara" | "sin_respuesta";
 
 function hora(iso: string) {
-  return new Date(iso).toLocaleTimeString("es-CL", {
+  return new Date(iso).toLocaleTimeString("es-CL", { timeZone: "America/Santiago",
     hour: "2-digit", minute: "2-digit", hour12: false,
   });
 }
@@ -56,7 +56,7 @@ function fechaCorta(iso: string) {
   const mismo = d.toDateString() === hoy.toDateString();
   return mismo
     ? `hoy ${hora(iso)}`
-    : `${d.toLocaleDateString("es-CL", { day: "numeric", month: "short" })} ${hora(iso)}`;
+    : `${d.toLocaleDateString("es-CL", { timeZone: "America/Santiago", day: "numeric", month: "short" })} ${hora(iso)}`;
 }
 
 export default function QrScanDrawer({ open, onClose, onRegistered }: Props) {

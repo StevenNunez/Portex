@@ -73,7 +73,7 @@ export default async function VisitantesPage() {
             </span>
             <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5, color: "var(--px-mid)" }}>
               {r.last_seen_at
-                ? new Date(r.last_seen_at).toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })
+                ? new Date(r.last_seen_at).toLocaleDateString("es-CL", { timeZone: "America/Santiago", day: "numeric", month: "short", year: "numeric" })
                 : "Nunca"}
             </span>
             <span style={{ color: "var(--px-mid)", textAlign: "center" }}>›</span>

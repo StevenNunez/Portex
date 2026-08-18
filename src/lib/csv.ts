@@ -14,7 +14,7 @@ const BOM = String.fromCharCode(0xfeff);
 /** Deja cualquier celda (fecha, número, null) como el texto que se ve. */
 export function toText(value: unknown): string {
   if (value == null) return "";
-  if (value instanceof Date) return value.toLocaleDateString("es-CL");
+  if (value instanceof Date) return value.toLocaleDateString("es-CL", { timeZone: "America/Santiago" });
   return String(value).trim();
 }
 

@@ -12,6 +12,8 @@ export type PickupMethod = "codigo" | "qr" | "manual";
 export type NoticeKind = "agua" | "luz" | "gas" | "internet" | "ascensor" | "fumigacion" | "obra" | "aseo" | "otro";
 export type NoticeScope = "edificio" | "unidad";
 export type NoticeSource = "admin" | "porteria";
+export type Tenancy = "propietario" | "arrendatario" | "otro";
+export type PetSpecies = "perro" | "gato" | "otro";
 
 export interface Database {
   public: {
@@ -35,9 +37,9 @@ export interface Database {
         Relationships: [];
       };
       residents: {
-        Row: { id: string; building_id: string; unit_code: string; name: string; household: string | null; tags: string[]; rut: string | null; contact: string | null; status: ResidentStatus; created_at: string };
-        Insert: { id?: string; building_id: string; unit_code: string; name: string; household?: string | null; tags?: string[]; rut?: string | null; contact?: string | null; status?: ResidentStatus; created_at?: string };
-        Update: { id?: string; building_id?: string; unit_code?: string; name?: string; household?: string | null; tags?: string[]; rut?: string | null; contact?: string | null; status?: ResidentStatus; created_at?: string };
+        Row: { id: string; building_id: string; unit_code: string; name: string; household: string | null; tags: string[]; rut: string | null; contact: string | null; status: ResidentStatus; tenancy: Tenancy | null; profile_updated_at: string | null; created_at: string };
+        Insert: { id?: string; building_id: string; unit_code: string; name: string; household?: string | null; tags?: string[]; rut?: string | null; contact?: string | null; status?: ResidentStatus; tenancy?: Tenancy | null; profile_updated_at?: string | null; created_at?: string };
+        Update: { id?: string; building_id?: string; unit_code?: string; name?: string; household?: string | null; tags?: string[]; rut?: string | null; contact?: string | null; status?: ResidentStatus; tenancy?: Tenancy | null; profile_updated_at?: string | null; created_at?: string };
         Relationships: [];
       };
       frequent_visitors: {
@@ -98,6 +100,18 @@ export interface Database {
         Row: { id: string; building_id: string; name: string; rut: string | null; role: string; contact: string | null; hourly_rate: number | null; active: boolean; created_at: string };
         Insert: { id?: string; building_id: string; name: string; rut?: string | null; role?: string; contact?: string | null; hourly_rate?: number | null; active?: boolean; created_at?: string };
         Update: { id?: string; building_id?: string; name?: string; rut?: string | null; role?: string; contact?: string | null; hourly_rate?: number | null; active?: boolean; created_at?: string };
+        Relationships: [];
+      };
+      household_members: {
+        Row: { id: string; building_id: string; resident_id: string; name: string; relationship: string | null; created_at: string };
+        Insert: { id?: string; building_id: string; resident_id: string; name: string; relationship?: string | null; created_at?: string };
+        Update: { id?: string; building_id?: string; resident_id?: string; name?: string; relationship?: string | null; created_at?: string };
+        Relationships: [];
+      };
+      pets: {
+        Row: { id: string; building_id: string; resident_id: string; species: PetSpecies; name: string | null; notes: string | null; created_at: string };
+        Insert: { id?: string; building_id: string; resident_id: string; species?: PetSpecies; name?: string | null; notes?: string | null; created_at?: string };
+        Update: { id?: string; building_id?: string; resident_id?: string; species?: PetSpecies; name?: string | null; notes?: string | null; created_at?: string };
         Relationships: [];
       };
       parcels: {

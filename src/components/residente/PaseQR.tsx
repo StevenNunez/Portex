@@ -17,7 +17,7 @@ interface Props {
 }
 
 function hora(iso: string) {
-  return new Date(iso).toLocaleTimeString("es-CL", {
+  return new Date(iso).toLocaleTimeString("es-CL", { timeZone: "America/Santiago",
     hour: "2-digit", minute: "2-digit", hour12: false,
   });
 }

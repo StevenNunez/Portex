@@ -51,7 +51,7 @@ export default function VehiculoDrawer({ open, onClose, onRegistered }: Props) {
       });
       onRegistered({
         id: result.id,
-        t: new Date(result.recorded_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false }),
+        t: new Date(result.recorded_at).toLocaleTimeString("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", hour12: false }),
         dir: "vehicle",
         who: result.who,
         ctx: result.recorded_by ?? "",

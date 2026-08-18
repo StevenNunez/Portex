@@ -9,6 +9,7 @@ import {
 import { getSpotsForUnit, getVehiclesForResidents } from "@/lib/parking";
 import { getParcelsForUnit } from "@/lib/encomiendas";
 import { getActiveNotices } from "@/lib/avisos";
+import { getPerfil } from "@/lib/perfil";
 import ResidenteHome from "@/components/residente/ResidenteHome";
 
 export const revalidate = 0;
@@ -49,7 +50,7 @@ export default async function ResidentePage() {
 
   const residentIds = units.map((u) => u.residentId);
 
-  const [pending, recent, passes, spots, vehicles, parcels, avisos] = await Promise.all([
+  const [pending, recent, passes, spots, vehicles, parcels, avisos, perfil] = await Promise.all([
     getPendingRequestsForResidents(residentIds),
     getRecentRequestsForResidents(residentIds, 15),
     getPassesForResident(residentIds[0]),
@@ -59,6 +60,7 @@ export default async function ResidentePage() {
     ctx.buildingId ? getVehiclesForResidents(ctx.buildingId, residentIds) : Promise.resolve([]),
     ctx.buildingId ? getParcelsForUnit(ctx.buildingId, units[0].unitCode) : Promise.resolve([]),
     ctx.buildingId ? getActiveNotices(ctx.buildingId, units[0].unitCode) : Promise.resolve([]),
+    getPerfil(units[0].residentId),
   ]);
 
 
@@ -73,6 +75,7 @@ export default async function ResidentePage() {
       vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
       parkingSpots={spots}
       vehicles={vehicles}
+      perfil={perfil}
       avisos={avisos.map((a) => ({
         id: a.id,
         kind: a.kind,

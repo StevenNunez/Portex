@@ -17,10 +17,10 @@ function formatDate(iso: string) {
   const now = new Date();
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
-  const time = d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const time = d.toLocaleTimeString("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", hour12: false });
   if (d.toDateString() === now.toDateString())       return `Hoy ${time}`;
   if (d.toDateString() === yesterday.toDateString()) return `Ayer ${time}`;
-  return d.toLocaleDateString("es-CL", { day: "numeric", month: "short" }) + ` ${time}`;
+  return d.toLocaleDateString("es-CL", { timeZone: "America/Santiago", day: "numeric", month: "short" }) + ` ${time}`;
 }
 
 function stripPrefix(context: string | null) {

@@ -44,7 +44,7 @@ const MONO: React.CSSProperties = {
 const TECLAS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "K", "0", "←"];
 
 function hora(iso: string) {
-  return new Date(iso).toLocaleTimeString("es-CL", {
+  return new Date(iso).toLocaleTimeString("es-CL", { timeZone: "America/Santiago",
     hour: "2-digit", minute: "2-digit", hour12: false,
   });
 }

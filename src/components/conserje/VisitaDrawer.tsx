@@ -21,7 +21,7 @@ const MOTIVOS = ["Visita", "Servicio", "Trabajo"] as const;
 type Motivo = (typeof MOTIVOS)[number];
 
 function fechaCorta(iso: string) {
-  return new Date(iso).toLocaleDateString("es-CL", { day: "numeric", month: "short" });
+  return new Date(iso).toLocaleDateString("es-CL", { timeZone: "America/Santiago", day: "numeric", month: "short" });
 }
 import { IconSearch } from "@/components/icons";
 
@@ -265,7 +265,9 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
   const hayPatente          = plate.trim().length >= 4;
 
   const passCheck = selectedUnit && name.trim().length >= 2 ? passEncontrado : null;
-  const parking   = open && selectedUnit && hayPatente ? parkingCargado : null;
+  // Se muestra apenas hay departamento: si el auto está afuera esperando, el
+  // conserje tiene que poder decir "no hay" antes de pedirle la patente.
+  const parking   = open && selectedUnit ? parkingCargado : null;
   const autoDeResidente = hayPatente ? autoResidente : null;
 
   useResetOnOpen(open, () => {
@@ -303,7 +305,10 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
   // estaciona. Se vuelve a consultar si cambia el depto, porque la
   // respuesta depende de cuál es.
   useEffect(() => {
-    if (!open || !selectedUnit || !hayPatente) return;
+    // Se consulta al elegir el departamento, no al escribir la patente: el
+    // auto ya está en la puerta y el conserje tiene que poder decirle "no hay"
+    // antes de pedirle nada más.
+    if (!open || !selectedUnit) return;
     let cancelled = false;
     const id = setTimeout(async () => {
       try {
@@ -320,7 +325,7 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
       cancelled = true;
       clearTimeout(id);
     };
-  }, [open, selectedUnit, hayPatente]);
+  }, [open, selectedUnit]);
 
   // Con el RUT completo se consulta al sistema. Si lo conoce, aparece la
   // ficha para confirmar de un toque.
@@ -518,7 +523,7 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
       setParkingResult(result.parking ?? null);
       onRegistered({
         id: result.id,
-        t: new Date(result.recorded_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false }),
+        t: new Date(result.recorded_at).toLocaleTimeString("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", hour12: false }),
         dir: "in",
         who: result.who,
         ctx: "Visita",
@@ -975,7 +980,7 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
 
                 {/* ─ Estacionamiento ─ Aparece solo cuando hay auto: la
                     pregunta "¿dónde lo dejo?" no existe si vino caminando. */}
-                {hayPatente && parking && (
+                {parking && (
                   <div style={{ marginTop: 10 }}>
                     {parking.suggestion ? (
                       <button

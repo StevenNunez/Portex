@@ -144,6 +144,15 @@ export async function getAvailability(
 }
 
 /** Resumen para la pantalla de portería: "3 de 8 libres". */
+/**
+ * Lo que la portería ve de un vistazo.
+ *
+ * Cuenta **los cupos que se le pueden ofrecer a alguien que llega**: los de
+ * visita más los que algún residente prestó. Antes contaba todos los del
+ * edificio, incluidos los de los departamentos, así que el chip podía decir
+ * "8/8" con los tres de visita ocupados — y el conserje se enteraba recién
+ * cuando el auto ya estaba en la puerta.
+ */
 export async function getParkingSummary(
   buildingId: string
 ): Promise<{ free: number; total: number } | null> {
@@ -155,9 +164,15 @@ export async function getParkingSummary(
   // Sin estacionamientos cargados el módulo no aplica a este edificio: se
   // devuelve null para que la portería no muestre un "0 de 0" desconcertante.
   if (activos.length === 0) return null;
+
+  const ahora = Date.now();
+  const paraVisitas = activos.filter(
+    (s) => s.kind === "visita" || estaPrestado(s.lent_until, ahora)
+  );
+
   return {
-    free: activos.filter((s) => !occupied.has(s.id)).length,
-    total: activos.length,
+    free: paraVisitas.filter((s) => !occupied.has(s.id)).length,
+    total: paraVisitas.length,
   };
 }
 

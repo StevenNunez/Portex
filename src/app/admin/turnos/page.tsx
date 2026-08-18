@@ -31,7 +31,7 @@ const STATUS_BG: Record<string, string> = {
 };
 
 function fmtDate(d: string) {
-  return new Date(d + "T12:00:00").toLocaleDateString("es-CL", {
+  return new Date(d + "T12:00:00").toLocaleDateString("es-CL", { timeZone: "America/Santiago",
     weekday: "short", day: "numeric", month: "short",
   });
 }

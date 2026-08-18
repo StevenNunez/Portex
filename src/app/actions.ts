@@ -1091,24 +1091,43 @@ export async function registerConserjeArrival(): Promise<{ ok: boolean; alreadyR
   if (!ctx?.buildingId || ctx.role !== "conserje") return { ok: false };
 
   const db = createServiceClient();
-  // El día del edificio. Con UTC, el conserje que entra al turno de noche
-  // quedaba registrado dos veces: a las 20:00 ya era "otro día".
-  const todayStart = startOfTodayUtc();
+  const staff = await findStaffByName(ctx.buildingId, ctx.staffName);
 
-  // Idempotency: skip if already registered today
-  const { data: existing } = await db
-    .from("access_log")
-    .select("id")
-    .eq("building_id", ctx.buildingId)
-    .eq("who", ctx.staffName)
-    .eq("context", "Inicio de turno")
-    .gte("recorded_at", todayStart)
-    .limit(1)
-    .maybeSingle();
+  // ¿Ya está en turno?
+  //
+  // Lo decide la jornada abierta, no la bitácora del día. Antes se miraba si
+  // había un "Inicio de turno" hoy, y eso fallaba en los dos sentidos:
+  //
+  //  · El conserje terminaba su turno y volvía a entrar en la tarde: como ya
+  //    figuraba un inicio de hoy, no se le abría jornada y trabajaba sin que
+  //    se le contaran las horas ni apareciera "en turno".
+  //  · El turno de noche cruzaba la medianoche, la tablet se reiniciaba a las
+  //    00:30 y —para el reloj ya era otro día— quedaba un segundo "Inicio de
+  //    turno" en la bitácora del mismo turno.
+  //
+  // Con la jornada como fuente de verdad, apagar y volver a entrar no
+  // registra nada, y volver después de haber cerrado el turno sí abre uno
+  // nuevo.
+  if (staff) {
+    const abierta = await getOpenAttendance(staff.id);
+    if (abierta) return { ok: true, alreadyRegistered: true };
+  } else {
+    // Conserje sin ficha en `staff`: no hay jornada donde mirar, así que la
+    // bitácora del día es lo único que evita registrar su llegada en cada
+    // carga de la pantalla.
+    const { data: existing } = await db
+      .from("access_log")
+      .select("id")
+      .eq("building_id", ctx.buildingId)
+      .eq("who", ctx.staffName)
+      .eq("context", "Inicio de turno")
+      .gte("recorded_at", startOfTodayUtc())
+      .limit(1)
+      .maybeSingle();
 
-  if (existing) return { ok: true, alreadyRegistered: true };
+    if (existing) return { ok: true, alreadyRegistered: true };
+  }
 
-  // Log the arrival
   await db.from("access_log").insert({
     building_id: ctx.buildingId,
     type: "in",
@@ -1120,7 +1139,6 @@ export async function registerConserjeArrival(): Promise<{ ok: boolean; alreadyR
   // Abrir la jornada del conserje: sus horas se cuentan igual que las del
   // jardinero o la señora del aseo, y `abrirJornada` deja además el turno
   // programado marcado como activo.
-  const staff = await findStaffByName(ctx.buildingId, ctx.staffName);
   if (staff) {
     await abrirJornada({ buildingId: ctx.buildingId, staff, source: "sesion" });
   }

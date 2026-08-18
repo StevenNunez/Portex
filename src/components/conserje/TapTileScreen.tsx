@@ -193,9 +193,11 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
                 border: `1px solid ${parkingSummary.free === 0 ? "var(--px-alert)" : "var(--px-line)"}`,
                 color: parkingSummary.free === 0 ? "var(--px-alert)" : "var(--px-ink2)",
               }}
-              title="Estacionamientos libres"
+              title="Estacionamientos disponibles para visitas"
             >
-              {parkingSummary.free}/{parkingSummary.total} EST.
+              {parkingSummary.free === 0
+                ? "SIN EST. VISITA"
+                : `${parkingSummary.free}/${parkingSummary.total} EST. VISITA`}
             </span>
           )}
           <LiveClock />
@@ -234,7 +236,7 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
               <span style={{ fontSize: 13, color: "var(--px-mid)" }}>
                 {a.scope === "unidad" && a.unitCode ? a.unitCode : "todo el edificio"}
                 {a.endsAt
-                  ? ` · hasta ${new Date(a.endsAt).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+                  ? ` · hasta ${new Date(a.endsAt).toLocaleTimeString("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", hour12: false })}`
                   : ""}
               </span>
             </div>

@@ -28,7 +28,7 @@ export default function CloseAttendanceButton({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const entrada = new Date(checkedInAt).toLocaleString("es-CL", {
+  const entrada = new Date(checkedInAt).toLocaleString("es-CL", { timeZone: "America/Santiago",
     day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false,
   });
 

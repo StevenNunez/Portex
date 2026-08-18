@@ -45,10 +45,10 @@ function cuando(iso: string) {
   const hoy = new Date();
   const ayer = new Date(hoy);
   ayer.setDate(hoy.getDate() - 1);
-  const hora = d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const hora = d.toLocaleTimeString("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", hour12: false });
   if (d.toDateString() === hoy.toDateString()) return `hoy ${hora}`;
   if (d.toDateString() === ayer.toDateString()) return `ayer ${hora}`;
-  return `${d.toLocaleDateString("es-CL", { day: "numeric", month: "short" })} ${hora}`;
+  return `${d.toLocaleDateString("es-CL", { timeZone: "America/Santiago", day: "numeric", month: "short" })} ${hora}`;
 }
 
 export default function MisEncomiendas({

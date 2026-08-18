@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getResidents } from "@/lib/db";
+import { getPerfilesResumen } from "@/lib/perfil";
 import { getUserContext } from "@/lib/user-context";
 import AddResidenteButton from "@/components/admin/AddResidenteButton";
 import ImportResidentesButton from "@/components/admin/ImportResidentesButton";
@@ -16,9 +17,10 @@ export default async function ResidentesPage({
   if (!ctx) redirect("/login");
   if (!ctx.buildingId) redirect("/onboarding");
 
-  const [rows, params] = await Promise.all([
+  const [rows, params, perfiles] = await Promise.all([
     getResidents(ctx.buildingId),
     searchParams,
+    getPerfilesResumen(ctx.buildingId),
   ]);
   const isAdmin = ctx.role === "admin";
   const initialSearch = params.q ?? "";
@@ -46,7 +48,13 @@ export default async function ResidentesPage({
         </div>
       </header>
 
-      <ResidentesClient rows={rows} isAdmin={isAdmin} initialSearch={initialSearch} />
+      <ResidentesClient
+        rows={rows}
+        isAdmin={isAdmin}
+        initialSearch={initialSearch}
+        // El Map no cruza la frontera servidor→cliente: viaja como objeto.
+        perfiles={Object.fromEntries(perfiles)}
+      />
     </>
   );
 }

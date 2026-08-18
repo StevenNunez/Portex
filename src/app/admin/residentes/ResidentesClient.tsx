@@ -87,9 +87,11 @@ function FilterSelect({
 // ── Main component ────────────────────────────────────────────────
 
 export default function ResidentesClient({
-  rows, isAdmin, initialSearch = "",
+  rows, isAdmin, initialSearch = "", perfiles = {},
 }: {
   rows: ResidentRow[];
+  /** Lo que cada departamento declaró desde su teléfono: cuántos viven y qué mascotas hay. */
+  perfiles?: Record<string, { integrantes: number; mascotas: { species: string; name: string | null }[] }>;
   isAdmin: boolean;
   initialSearch?: string;
 }) {
@@ -454,8 +456,32 @@ export default function ResidentesClient({
                   {r.contact && <div style={{ color: "var(--px-mid)" }}>{r.contact}</div>}
                 </div>
 
-                <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)" }}>
-                  {r.household || "—"}
+                <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)", lineHeight: 1.6 }}>
+                  {(() => {
+                    const perfil = perfiles[r.id];
+                    const personas = perfil?.integrantes ?? 0;
+                    const mascotas = perfil?.mascotas ?? [];
+                    // Mientras el residente no llene su ficha se sigue mostrando
+                    // el texto libre viejo: es lo único que hay de ese depto.
+                    if (personas === 0 && mascotas.length === 0) return r.household || "—";
+                    return (
+                      <>
+                        {personas > 0 && (
+                          <div style={{ color: "var(--px-ink2)" }}>
+                            {personas === 1 ? "1 integrante" : `${personas} integrantes`}
+                          </div>
+                        )}
+                        {mascotas.length > 0 && (
+                          <div title={mascotas.map((m) => m.name).filter(Boolean).join(", ")}>
+                            {mascotas.length === 1
+                              ? (mascotas[0].name ?? mascotas[0].species)
+                              : `${mascotas.length} mascotas`}
+                            {" 🐾"}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </span>
 
                 <span>

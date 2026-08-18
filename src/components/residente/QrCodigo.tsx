@@ -37,6 +37,20 @@ const MONO: React.CSSProperties = {
   color: "var(--px-mid)",
 };
 
+/**
+ * La firma que viaja en cada pase compartido.
+ *
+ * Cada visita que recibe un código es alguien que todavía no conoce Portex y
+ * que probablemente vive en otro edificio con el mismo cuaderno en la
+ * portería. El link va con la tarjeta y todo: es la publicidad más barata que
+ * tenemos, y llega justo cuando la persona está viendo que el sistema
+ * funciona.
+ */
+function firma(): string {
+  const sitio = typeof window === "undefined" ? "portex.teolabs.app" : window.location.origin;
+  return `\n\nEnviado con Portex — el edificio te avisa quién llega.\n${sitio}`;
+}
+
 /** "482913" → "482 913": así se dicta sin equivocarse. */
 export function codigoLegible(code: string) {
   return `${code.slice(0, 3)} ${code.slice(3)}`;
@@ -59,25 +73,43 @@ export default function QrCodigo({
     return { path: toSvgPath(matriz), size: matriz.length };
   }, [contenido]);
 
+  const mensaje = textoCompartir + firma();
+
   async function compartir() {
-    // Se comparte el QR como imagen para que la otra persona lo lleve en su
-    // propio teléfono; si el navegador no sabe compartir archivos, va el
-    // texto con el código, que sirve igual en la portería.
+    // El menú del teléfono es el mejor camino: manda el QR como imagen y la
+    // persona se lo guarda en su galería. Pero no está en todas partes —en
+    // Chrome de escritorio no se pueden compartir archivos, en Firefox no hay
+    // menú— así que si falla, WhatsApp.
     try {
       if (navigator.share) {
         const archivo = await comoArchivoPng(path, size, `portex-${code}.png`);
         if (archivo && navigator.canShare?.({ files: [archivo] })) {
-          await navigator.share({ text: textoCompartir, files: [archivo] });
+          await navigator.share({ text: mensaje, files: [archivo] });
           return;
         }
-        await navigator.share({ text: textoCompartir });
+        await navigator.share({ text: mensaje });
         return;
       }
-      await navigator.clipboard.writeText(textoCompartir);
+    } catch (err) {
+      // Cancelar el diálogo no es un error y no hay que insistirle con otra
+      // ventana; cualquier otra cosa sí cae a WhatsApp.
+      if ((err as { name?: string })?.name === "AbortError") return;
+    }
+
+    abrirWhatsApp();
+  }
+
+  function abrirWhatsApp() {
+    window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, "_blank", "noopener");
+  }
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(mensaje);
       setCopiado(true);
       setTimeout(() => setCopiado(false), 2500);
     } catch {
-      /* el usuario canceló el diálogo de compartir: no es un error */
+      /* sin portapapeles: quedan el QR en pantalla y el código a la vista */
     }
   }
 
@@ -139,8 +171,47 @@ export default function QrCodigo({
             cursor: "pointer",
           }}
         >
-          {copiado ? "✓ Copiado" : etiquetaBoton}
+          {etiquetaBoton}
         </button>
+
+        {/* Las dos salidas de siempre, por si el menú del teléfono no aparece
+            o quien recibe el pase prefiere el texto pelado. */}
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <button
+            onClick={abrirWhatsApp}
+            style={{
+              flex: 1,
+              padding: "10px",
+              background: "transparent",
+              color: "var(--px-ink2)",
+              border: "1px solid var(--px-line)",
+              borderRadius: 10,
+              font: "inherit",
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            WhatsApp
+          </button>
+          <button
+            onClick={copiar}
+            style={{
+              flex: 1,
+              padding: "10px",
+              background: "transparent",
+              color: copiado ? "var(--px-ok)" : "var(--px-ink2)",
+              border: "1px solid var(--px-line)",
+              borderRadius: 10,
+              font: "inherit",
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            {copiado ? "✓ Copiado" : "Copiar"}
+          </button>
+        </div>
       </div>
     </div>
   );

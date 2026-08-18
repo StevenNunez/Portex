@@ -24,11 +24,11 @@ function rango(startsAt?: string, endsAt?: string | null): string {
   const inicio = new Date(startsAt);
   const fin = endsAt ? new Date(endsAt) : null;
 
-  const dia = inicio.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
-  const hi = inicio.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const dia = inicio.toLocaleDateString("es-CL", { timeZone: "America/Santiago", weekday: "long", day: "numeric", month: "long" });
+  const hi = inicio.toLocaleTimeString("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", hour12: false });
   if (!fin) return `${dia}, desde las ${hi}`;
 
-  const hf = fin.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const hf = fin.toLocaleTimeString("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", hour12: false });
   const mismoDia = inicio.toDateString() === fin.toDateString();
   return mismoDia ? `${dia}, de ${hi} a ${hf}` : `desde el ${dia} ${hi}`;
 }

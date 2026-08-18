@@ -3,6 +3,7 @@ import { getUserContext } from "@/lib/user-context";
 import { getStaff } from "@/lib/db";
 import InviteStaffForm from "./InviteStaffForm";
 import StaffCard from "@/components/admin/StaffCard";
+import { EditarEdificio, EditarMiCuenta } from "@/components/admin/EditarEdificio";
 
 export const revalidate = 0;
 
@@ -16,16 +17,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </div>
   );
 }
-
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 0, paddingBottom: 14, marginBottom: 14, borderBottom: "1px solid var(--px-line2)" }}>
-      <span style={{ width: 180, flexShrink: 0, fontSize: 13, color: "var(--px-mid)" }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 500, color: "var(--px-ink)" }}>{value}</span>
-    </div>
-  );
-}
-
 
 export default async function ConfigPage() {
   const ctx = await getUserContext();
@@ -46,26 +37,18 @@ export default async function ConfigPage() {
 
       <div style={{ flex: 1, overflow: "auto", padding: "28px 32px", display: "flex", flexDirection: "column", gap: 20, maxWidth: 780 }}>
 
-        {/* Building info */}
+        {/* Edificio */}
         <Section title="Edificio">
-          <Field label="Nombre del edificio" value={ctx.buildingName ?? "—"} />
-          <Field label="Unidades totales"    value={ctx.unitsTotal != null ? String(ctx.unitsTotal) : "—"} />
-          <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-            <span style={{ width: 180, flexShrink: 0, fontSize: 13, color: "var(--px-mid)" }}>Organización</span>
-            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--px-ink)" }}>{ctx.orgName ?? "—"}</span>
-          </div>
+          <EditarEdificio
+            nombre={ctx.buildingName ?? ""}
+            unidades={ctx.unitsTotal}
+            organizacion={ctx.orgName ?? ""}
+          />
         </Section>
 
-        {/* My account */}
+        {/* Mi cuenta */}
         <Section title="Mi cuenta">
-          <Field label="Nombre"  value={ctx.staffName} />
-          <Field label="Rol"     value={ctx.role === "admin" ? "Administrador" : ctx.role} />
-          <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-            <span style={{ width: 180, flexShrink: 0, fontSize: 13, color: "var(--px-mid)" }}>Contraseña</span>
-            <a href="/reset-password" style={{ fontSize: 13, color: "var(--px-ink)", textDecoration: "underline", cursor: "pointer" }}>
-              Cambiar contraseña →
-            </a>
-          </div>
+          <EditarMiCuenta nombre={ctx.staffName} rol={ctx.role} />
         </Section>
 
         {/* Staff */}

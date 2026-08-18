@@ -42,7 +42,7 @@ export default async function ConserjeHomePage() {
   function toActivityItem(r: (typeof activityRows)[0]): ActivityItem {
     return {
       id: r.id,
-      t: new Date(r.recorded_at).toLocaleTimeString("es-CL", {
+      t: new Date(r.recorded_at).toLocaleTimeString("es-CL", { timeZone: "America/Santiago",
         hour: "2-digit", minute: "2-digit", hour12: false,
       }),
       dir: r.type,
@@ -72,7 +72,7 @@ export default async function ConserjeHomePage() {
     reason: v.reason,
     unit: v.default_unit,
     last: v.last_seen_at
-      ? new Date(v.last_seen_at).toLocaleDateString("es-CL", { day: "numeric", month: "short" })
+      ? new Date(v.last_seen_at).toLocaleDateString("es-CL", { timeZone: "America/Santiago", day: "numeric", month: "short" })
       : null,
   }));
 

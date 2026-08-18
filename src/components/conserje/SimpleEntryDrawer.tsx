@@ -149,7 +149,7 @@ export default function SimpleEntryDrawer({ type, open, onClose, onRegistered, r
       });
       onRegistered({
         id: result.id,
-        t: new Date(result.recorded_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false }),
+        t: new Date(result.recorded_at).toLocaleTimeString("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", hour12: false }),
         dir: accessType,
         who: result.who,
         ctx: context,

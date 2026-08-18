@@ -38,7 +38,7 @@ const INPUT: CSSProperties = {
 };
 
 function fechaLarga(iso: string) {
-  return new Date(iso).toLocaleDateString("es-CL", {
+  return new Date(iso).toLocaleDateString("es-CL", { timeZone: "America/Santiago",
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -114,7 +114,7 @@ function SpotCard({ spot }: { spot: MySpot }) {
           </div>
           <div style={{ ...MONO, marginTop: 3 }}>
             {spot.occupiedBy.driverName?.toUpperCase() ?? "SIN NOMBRE"} · DESDE LAS{" "}
-            {new Date(spot.occupiedBy.startedAt).toLocaleTimeString("es-CL", {
+            {new Date(spot.occupiedBy.startedAt).toLocaleTimeString("es-CL", { timeZone: "America/Santiago",
               hour: "2-digit", minute: "2-digit", hour12: false,
             })}
           </div>

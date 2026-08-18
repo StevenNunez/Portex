@@ -29,7 +29,7 @@ const MONO: React.CSSProperties = {
 };
 
 function hora(iso: string) {
-  return new Date(iso).toLocaleTimeString("es-CL", {
+  return new Date(iso).toLocaleTimeString("es-CL", { timeZone: "America/Santiago",
     hour: "2-digit", minute: "2-digit", hour12: false,
   });
 }
@@ -41,7 +41,7 @@ function dia(iso: string) {
   manana.setDate(hoy.getDate() + 1);
   if (d.toDateString() === hoy.toDateString()) return "hoy";
   if (d.toDateString() === manana.toDateString()) return "mañana";
-  return d.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
+  return d.toLocaleDateString("es-CL", { timeZone: "America/Santiago", weekday: "long", day: "numeric", month: "long" });
 }
 
 function cuando(a: AvisoVisible) {

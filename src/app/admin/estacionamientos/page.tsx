@@ -138,7 +138,7 @@ export default async function EstacionamientosPage() {
                         </span>
                         {prestado && (
                           <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, color: "var(--px-mid)", marginTop: 3 }}>
-                            HASTA EL {new Date(spot.lent_until as string).toLocaleDateString("es-CL", { day: "numeric", month: "short" }).toUpperCase()}
+                            HASTA EL {new Date(spot.lent_until as string).toLocaleDateString("es-CL", { timeZone: "America/Santiago", day: "numeric", month: "short" }).toUpperCase()}
                           </div>
                         )}
                       </div>

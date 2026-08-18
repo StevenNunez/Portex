@@ -53,8 +53,8 @@ function buildCsv(rows: ActivityRow[]): string {
     const at = new Date(r.recorded_at);
     lines.push(
       [
-        cell(at.toLocaleDateString("es-CL")),
-        cell(at.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false })),
+        cell(at.toLocaleDateString("es-CL", { timeZone: "America/Santiago" })),
+        cell(at.toLocaleTimeString("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", hour12: false })),
         cell(TYPE_LABEL[r.type] ?? r.type),
         cell(r.who),
         cell(r.rut ? formatRut(r.rut) : null),

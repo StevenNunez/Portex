@@ -87,7 +87,7 @@ export default function SalidaDrawer({ open, onClose, onRegistered, recentActivi
       });
       onRegistered({
         id: result.id,
-        t: new Date(result.recorded_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false }),
+        t: new Date(result.recorded_at).toLocaleTimeString("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", hour12: false }),
         dir: "out",
         who: result.who,
         ctx: "Salida",

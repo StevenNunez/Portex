@@ -44,7 +44,7 @@ export default async function AdminPage() {
   const { buildingId } = ctx;
   const today = new Date();
   const todayLabel = today
-    .toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" })
+    .toLocaleDateString("es-CL", { timeZone: "America/Santiago", weekday: "long", day: "numeric", month: "long" })
     .replace(/^./, (c) => c.toUpperCase());
 
   const [stats, hourly, shifts, activity] = await Promise.all([
@@ -304,7 +304,7 @@ export default async function AdminPage() {
                   <DirIcon type={a.type} size={14} />
                 </span>
                 <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)" }}>
-                  {new Date(a.recorded_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false })}
+                  {new Date(a.recorded_at).toLocaleTimeString("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", hour12: false })}
                 </span>
                 <span style={{
                   fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.05em",

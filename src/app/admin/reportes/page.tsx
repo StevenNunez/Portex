@@ -43,7 +43,7 @@ function DirIcon({ type }: { type: string }) {
 }
 
 function fmt(d: string) {
-  return new Date(d).toLocaleString("es-CL", {
+  return new Date(d).toLocaleString("es-CL", { timeZone: "America/Santiago",
     day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false,
   });
 }

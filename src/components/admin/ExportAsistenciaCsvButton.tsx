@@ -45,7 +45,7 @@ function cell(value: string | null | undefined): string {
 
 function horaLocal(iso: string | null): string | null {
   if (!iso) return null;
-  return new Date(iso).toLocaleTimeString("es-CL", {
+  return new Date(iso).toLocaleTimeString("es-CL", { timeZone: "America/Santiago",
     hour: "2-digit", minute: "2-digit", hour12: false,
   });
 }
@@ -63,7 +63,7 @@ function buildCsv(rows: AsistenciaCsvRow[]): string {
   for (const r of rows) {
     lines.push(
       [
-        cell(new Date(r.date + "T12:00:00").toLocaleDateString("es-CL")),
+        cell(new Date(r.date + "T12:00:00").toLocaleDateString("es-CL", { timeZone: "America/Santiago" })),
         cell(r.name),
         cell(r.rut),
         cell(r.role),
