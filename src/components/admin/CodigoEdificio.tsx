@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { encode, toSvgPath } from "@/lib/qr";
+import { IconMark } from "@/components/icons";
 import { cambiarCodigoEdificio } from "@/app/autoregistro-actions";
 
 /**
@@ -127,6 +128,12 @@ export default function CodigoEdificio({
         )}
 
         <div style={{ minWidth: 0, flex: 1 }}>
+          {/* La marca en el cartel: es un papel pegado en un ascensor y tiene
+              que decir de quién es a un metro de distancia. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <IconMark size={22} />
+            <span style={{ fontWeight: 700, fontSize: 19, letterSpacing: "-0.04em" }}>Portex</span>
+          </div>
           <div style={MONO}>ACCESO A LA APP · {buildingName.toUpperCase()}</div>
           <div style={{ fontSize: 19, fontWeight: 600, letterSpacing: "-0.025em", margin: "6px 0 10px" }}>
             Escanea y pide tu acceso

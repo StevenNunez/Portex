@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import TapTileScreen from "@/components/conserje/TapTileScreen";
-import { getRecentActivity, getResidents, getFrequentVisitors } from "@/lib/db";
+import { getRecentActivity, getResidents, getFrequentVisitors, getTilePrincipal } from "@/lib/db";
 import { getPendingParcels } from "@/lib/encomiendas";
 import { getUserContext } from "@/lib/user-context";
 import { getApprovedAwaitingEntry } from "@/lib/citofono";
@@ -27,7 +27,7 @@ export default async function ConserjeHomePage() {
 
   const { buildingId, staffName } = ctx;
 
-  const [activityRows, todayRows, residentRows, freqRows, pendingParcelRows, approvedRows, parkingSummary, presentStaff, avisos, solicitudes] = await Promise.all([
+  const [activityRows, todayRows, residentRows, freqRows, pendingParcelRows, approvedRows, parkingSummary, presentStaff, avisos, solicitudes, tilePrincipal] = await Promise.all([
     getRecentActivity(20, buildingId),          // feed de actividad reciente (strip inferior)
     getRecentActivity(200, buildingId),         // lista completa del día para SalidaDrawer
     getResidents(buildingId),
@@ -38,6 +38,7 @@ export default async function ConserjeHomePage() {
     getPresentStaff(buildingId),                 // personal con jornada abierta
     getActiveNotices(buildingId),                // cortes y trabajos del día
     solicitudesPendientes(buildingId),           // vecinos que escanearon el cartel
+    getTilePrincipal(buildingId),                // qué acceso va destacado
   ]);
 
 
@@ -103,6 +104,7 @@ export default async function ConserjeHomePage() {
       parkingSummary={parkingSummary}
       solicitudes={solicitudes}
       vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
+      tilePrincipal={tilePrincipal}
       avisos={avisos.map((a) => ({
         id: a.id,
         kind: a.kind,

@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Drawer, { FIELD, LABEL, BTN_PRIMARY } from "./Drawer";
 import { addResident } from "@/app/actions";
+import { formatoDelPadron } from "@/app/padron-actions";
+import { construirUnidad, type FormatoUnidad } from "@/lib/residentes";
 
 type Status = "activo" | "pendiente" | "inactivo";
 
@@ -14,7 +16,13 @@ function Row({ children }: { children: React.ReactNode }) {
 export default function AddResidenteButton() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [unitCode, setUnitCode] = useState("");
+  // Torre y número por separado: el código se arma solo. Antes había que
+  // escribirlo a mano y con 300 departamentos eso termina en un padrón con
+  // tres formatos distintos y unidades duplicadas.
+  const [torre, setTorre] = useState("");
+  const [depto, setDepto] = useState("");
+  const [formato, setFormato] = useState<FormatoUnidad>({ separador: "-", digitos: 0, torres: [] });
+  const [existentes, setExistentes] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [household, setHousehold] = useState("");
   const [rut, setRut] = useState("");
@@ -23,8 +31,26 @@ export default function AddResidenteButton() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // El formato lo dicta el padrón que ya existe, no nosotros: hay edificios
+  // que usan "A · 0307" y otros "A-101". Se lee al abrir el cajón.
+  useEffect(() => {
+    if (!open) return;
+    let vivo = true;
+    formatoDelPadron()
+      .then((d) => {
+        if (!vivo) return;
+        setFormato(d.formato);
+        setExistentes(d.existentes);
+      })
+      .catch(() => {});
+    return () => { vivo = false; };
+  }, [open]);
+
+  const unitCode = construirUnidad(torre, depto, formato);
+  const yaExiste = unitCode !== "" && existentes.includes(unitCode);
+
   function reset() {
-    setUnitCode(""); setName(""); setHousehold(""); setRut(""); setContact(""); setStatus("activo"); setError(null);
+    setTorre(""); setDepto(""); setName(""); setHousehold(""); setRut(""); setContact(""); setStatus("activo"); setError(null);
   }
 
   function close() { setOpen(false); reset(); }
@@ -77,10 +103,58 @@ export default function AddResidenteButton() {
       <Drawer open={open} onClose={close} title="Nuevo residente">
         <form onSubmit={handleSubmit}>
           <Row>
-            <label style={LABEL}>Código de unidad *</label>
-            <input required value={unitCode} onChange={(e) => setUnitCode(e.target.value.toUpperCase())}
-              placeholder="Ej: 101, 1204, A-501"
-              style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <label style={LABEL}>
+                  Torre {formato.torres.length === 0 && <span style={{ color: "var(--px-mid)", fontWeight: 400 }}>— si tiene</span>}
+                </label>
+                <input
+                  value={torre}
+                  onChange={(e) => setTorre(e.target.value)}
+                  placeholder={formato.torres[0] ?? "A"}
+                  list={formato.torres.length > 0 ? "torres-edificio" : undefined}
+                  style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600, textTransform: "uppercase" }}
+                />
+                {formato.torres.length > 0 && (
+                  <datalist id="torres-edificio">
+                    {formato.torres.map((t) => <option key={t} value={t} />)}
+                  </datalist>
+                )}
+              </div>
+              <div>
+                <label style={LABEL}>N° depto *</label>
+                <input
+                  required
+                  value={depto}
+                  onChange={(e) => setDepto(e.target.value)}
+                  placeholder="1204"
+                  style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600, textTransform: "uppercase" }}
+                />
+              </div>
+            </div>
+
+            {/* El código que va a quedar, a la vista antes de guardar. */}
+            <div
+              style={{
+                marginTop: 10, padding: "9px 12px", borderRadius: 8,
+                background: yaExiste ? "oklch(0.96 0.05 28)" : "var(--px-paper)",
+                border: `1px solid ${yaExiste ? "oklch(0.88 0.12 28)" : "var(--px-line2)"}`,
+                display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+              }}
+            >
+              <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--px-mid2)" }}>
+                QUEDA COMO
+              </span>
+              <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 15, fontWeight: 700 }}>
+                {unitCode || "—"}
+              </span>
+            </div>
+            {yaExiste && (
+              <div style={{ marginTop: 6, fontSize: 12.5, color: "var(--px-alert)", lineHeight: 1.5 }}>
+                Ese departamento ya está en el padrón. Búscalo en la lista y edítalo,
+                o revisa el número.
+              </div>
+            )}
           </Row>
           <Row>
             <label style={LABEL}>Nombre titular *</label>
@@ -135,10 +209,15 @@ export default function AddResidenteButton() {
             </div>
           )}
 
-          <button type="submit" disabled={loading}
-            style={{ ...BTN_PRIMARY, opacity: loading ? 0.6 : 1, cursor: loading ? "not-allowed" : "pointer" }}>
-            {loading ? "Guardando…" : "Agregar residente"}
-          </button>
+          {(() => {
+            const bloqueado = loading || !unitCode || yaExiste;
+            return (
+              <button type="submit" disabled={bloqueado}
+                style={{ ...BTN_PRIMARY, opacity: bloqueado ? 0.5 : 1, cursor: bloqueado ? "not-allowed" : "pointer" }}>
+                {loading ? "Guardando…" : yaExiste ? "Ese departamento ya existe" : "Agregar residente"}
+              </button>
+            );
+          })()}
         </form>
       </Drawer>
     </>

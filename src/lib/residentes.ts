@@ -77,3 +77,86 @@ export function unidadCanonica(escrita: string, delPadron: string[]): string | n
   if (!objetivo) return null;
   return delPadron.find((u) => normalizarUnidad(u) === objetivo) ?? null;
 }
+
+
+/**
+ * Cómo escribe **este** edificio sus códigos de unidad.
+ *
+ * No hay un formato único: el padrón del demo guarda "A · 0307", el importador
+ * de Excel arma "A-101", y un edificio de una sola torre usa "1204" pelado. Si
+ * el administrador crea un residente a mano y le sale un formato distinto al
+ * del resto, queda un departamento duplicado que nadie nota hasta que el
+ * conserje busca por unidad y no encuentra nada.
+ *
+ * Así que en vez de imponer un formato, se lee el que ya usa el edificio.
+ */
+export interface FormatoUnidad {
+  /** Lo que va entre la torre y el número: " · ", "-", o nada. */
+  separador: string;
+  /** A cuántos dígitos se rellena el número, 0 si no se rellena. */
+  digitos: number;
+  /** Las torres que ya existen, para ofrecerlas. */
+  torres: string[];
+}
+
+export function formatoDeUnidad(codigos: string[]): FormatoUnidad {
+  const separadores = new Map<string, number>();
+  const torres = new Set<string>();
+  const anchos: number[] = [];
+  let conCeroAdelante = 0;
+
+  for (const codigo of codigos) {
+    // El separador es lo que haya entre la parte de torre y la numérica.
+    const m = codigo.match(/^(.*?)([\s·.\-_]+)(\d+)$/);
+    if (m) {
+      separadores.set(m[2], (separadores.get(m[2]) ?? 0) + 1);
+      torres.add(m[1].trim());
+      anchos.push(m[3].length);
+      if (m[3].length > 1 && m[3].startsWith("0")) conCeroAdelante++;
+    } else {
+      const soloNumero = codigo.match(/^(\d+)$/);
+      if (soloNumero) {
+        separadores.set("", (separadores.get("") ?? 0) + 1);
+        anchos.push(soloNumero[1].length);
+        if (soloNumero[1].length > 1 && soloNumero[1].startsWith("0")) conCeroAdelante++;
+      }
+    }
+  }
+
+  const separador = [...separadores.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "-";
+
+  // Solo se rellena con ceros si el edificio **ya** lo hace y lo hace parejo:
+  // adivinarlo cuando no hay evidencia crea el duplicado que se quiere evitar.
+  const parejo = anchos.length > 0 && anchos.every((a) => a === anchos[0]);
+  const digitos = conCeroAdelante > 0 && parejo ? anchos[0] : 0;
+
+  return {
+    separador,
+    digitos,
+    torres: [...torres].filter(Boolean).sort(),
+  };
+}
+
+/** Arma el código con el formato del edificio. Devuelve "" si falta el número. */
+export function construirUnidad(torre: string, depto: string, formato: FormatoUnidad): string {
+  const numero = depto.trim().toUpperCase();
+  if (!numero) return "";
+
+  // Se rellena solo si es un número puro: "4B" o "PH-1" se dejan como están.
+  const relleno =
+    formato.digitos > 0 && /^\d+$/.test(numero)
+      ? numero.padStart(formato.digitos, "0")
+      : numero;
+
+  const t = torre.trim();
+  if (!t) return relleno;
+
+  // Si esa torre ya existe, se escribe **como está escrita en el padrón**.
+  // Sin esto, teclear "norte" en un edificio que guarda "Norte" creaba
+  // "NORTE-404" al lado de "Norte-201": dos torres donde hay una.
+  const conocida = formato.torres.find(
+    (existente) => existente.toLowerCase() === t.toLowerCase()
+  );
+
+  return `${conocida ?? t.toUpperCase()}${formato.separador || "-"}${relleno}`;
+}

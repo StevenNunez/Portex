@@ -105,9 +105,9 @@ export interface Database {
         Relationships: [];
       };
       staff: {
-        Row: { id: string; building_id: string; name: string; rut: string | null; role: string; contact: string | null; hourly_rate: number | null; active: boolean; created_at: string };
-        Insert: { id?: string; building_id: string; name: string; rut?: string | null; role?: string; contact?: string | null; hourly_rate?: number | null; active?: boolean; created_at?: string };
-        Update: { id?: string; building_id?: string; name?: string; rut?: string | null; role?: string; contact?: string | null; hourly_rate?: number | null; active?: boolean; created_at?: string };
+        Row: { id: string; building_id: string; name: string; rut: string | null; role: string; contact: string | null; hourly_rate: number | null; active: boolean; email: string | null; emergency_name: string | null; emergency_phone: string | null; profile_id: string | null; created_at: string };
+        Insert: { id?: string; building_id: string; name: string; rut?: string | null; role?: string; contact?: string | null; hourly_rate?: number | null; active?: boolean; email?: string | null; emergency_name?: string | null; emergency_phone?: string | null; profile_id?: string | null; created_at?: string };
+        Update: { id?: string; building_id?: string; name?: string; rut?: string | null; role?: string; contact?: string | null; hourly_rate?: number | null; active?: boolean; email?: string | null; emergency_name?: string | null; emergency_phone?: string | null; profile_id?: string | null; created_at?: string };
         Relationships: [];
       };
       household_members: {

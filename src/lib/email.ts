@@ -29,7 +29,14 @@ function layout(content: string): string {
       <td align="center">
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
           style="max-width:560px;">
-          <!-- Logo -->
+          <!-- Marca: logo arriba del nombre, igual que en la app.
+               En PNG y no en SVG: los clientes de correo borran el <svg>. -->
+          <tr>
+            <td style="padding-bottom:8px;text-align:center;">
+              <img src="${appUrl()}/logo-portex.png" width="34" height="34" alt="Portex"
+                style="display:inline-block;width:34px;height:34px;border:0;outline:none;text-decoration:none;" />
+            </td>
+          </tr>
           <tr>
             <td style="padding-bottom:32px;text-align:center;">
               <span style="font-size:22px;font-weight:700;letter-spacing:-0.045em;color:#1E1B17;">

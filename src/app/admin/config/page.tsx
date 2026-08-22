@@ -1,8 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUserContext } from "@/lib/user-context";
-import { getStaff } from "@/lib/db";
-import InviteStaffForm from "./InviteStaffForm";
-import StaffCard from "@/components/admin/StaffCard";
 import { EditarEdificio, EditarMiCuenta } from "@/components/admin/EditarEdificio";
 import CodigoEdificio from "@/components/admin/CodigoEdificio";
 import { obtenerOCrearCodigo } from "@/lib/autoregistro";
@@ -25,7 +23,6 @@ export default async function ConfigPage() {
   const ctx = await getUserContext();
   if (!ctx) redirect("/login");
 
-  const staff = ctx.buildingId ? await getStaff(ctx.buildingId) : [];
   // El código del cartel: se crea la primera vez que alguien abre esta página.
   const codigo = ctx.buildingId && ctx.role === "admin"
     ? await obtenerOCrearCodigo(ctx.buildingId)
@@ -69,29 +66,25 @@ export default async function ConfigPage() {
           <EditarMiCuenta nombre={ctx.staffName} rol={ctx.role} />
         </Section>
 
-        {/* Staff */}
+        {/* El personal se mudó: con treinta personas esta página era una
+            lista interminable. Queda el atajo. */}
         <Section title="Personal">
-          {staff.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {staff.map((s) => (
-                  <StaffCard key={s.id} staff={s} />
-                ))}
-              </div>
-              <div style={{ height: 20 }} />
-            </div>
-          )}
-
-          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 14, color: "var(--px-ink2)" }}>
-            Invitar conserje por email
-          </div>
-          {ctx.orgId ? (
-            <InviteStaffForm organizationId={ctx.orgId} />
-          ) : (
-            <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, color: "var(--px-mid)" }}>
-              Completa el onboarding para invitar personal.
-            </div>
-          )}
+          <p style={{ margin: "0 0 14px", fontSize: 13.5, color: "var(--px-mid)", lineHeight: 1.6 }}>
+            Las fichas del equipo —contacto, correo y a quién llamar en una
+            emergencia— viven en su propia pantalla.
+          </p>
+          <Link
+            href="/admin/personal"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "9px 14px", borderRadius: 8,
+              background: "white", border: "1px solid var(--px-line)",
+              fontSize: 13, fontWeight: 500, color: "var(--px-ink2)", textDecoration: "none",
+            }}
+          >
+            Ir a Personal
+            <span style={{ color: "var(--px-mid)" }}>→</span>
+          </Link>
         </Section>
 
       </div>

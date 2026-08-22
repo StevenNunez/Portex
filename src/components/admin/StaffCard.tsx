@@ -23,7 +23,10 @@ export default function StaffCard({ staff }: { staff: StaffRow }) {
   const [rut, setRut] = useState(staff.rut ?? "");
   const [role, setRole] = useState(staff.role);
   const [contact, setContact] = useState(staff.contact ?? "");
-  
+  const [email, setEmail] = useState(staff.email ?? "");
+  const [emerNombre, setEmerNombre] = useState(staff.emergency_name ?? "");
+  const [emerFono, setEmerFono] = useState(staff.emergency_phone ?? "");
+
   const [loading, setLoading] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +36,9 @@ export default function StaffCard({ staff }: { staff: StaffRow }) {
     setRut(staff.rut ?? "");
     setRole(staff.role);
     setContact(staff.contact ?? "");
+    setEmail(staff.email ?? "");
+    setEmerNombre(staff.emergency_name ?? "");
+    setEmerFono(staff.emergency_phone ?? "");
     setError(null);
   }
 
@@ -47,6 +53,9 @@ export default function StaffCard({ staff }: { staff: StaffRow }) {
       rut: rut || undefined,
       role,
       contact: contact || undefined,
+      email: email || undefined,
+      emergencyName: emerNombre || undefined,
+      emergencyPhone: emerFono || undefined,
     });
     setLoading(false);
     if (res.ok) {
@@ -86,11 +95,26 @@ export default function StaffCard({ staff }: { staff: StaffRow }) {
         <div style={{ width: 32, height: 32, borderRadius: 16, background: "var(--px-line)", color: "var(--px-ink2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
           {initials(staff.name)}
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>{staff.name}</div>
-          <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, color: "var(--px-mid)" }}>{staff.role}</div>
+          <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, color: "var(--px-mid)" }}>
+            {staff.role}
+            {staff.contact ? ` · ${staff.contact}` : ""}
+          </div>
+          {/* Lo que el administrador necesita ver sin abrir nada: si esa
+              persona puede entrar a Portex y si hay a quién llamar. */}
+          <div style={{ display: "flex", gap: 5, marginTop: 5, flexWrap: "wrap" }}>
+            {staff.profile_id ? (
+              <Etiqueta texto="CON CUENTA" color="oklch(0.42 0.12 150)" fondo="oklch(0.95 0.05 150)" />
+            ) : (
+              <Etiqueta texto="SIN CUENTA" color="var(--px-mid)" fondo="var(--px-line2)" />
+            )}
+            {!staff.emergency_phone && (
+              <Etiqueta texto="SIN EMERGENCIA" color="oklch(0.48 0.14 75)" fondo="oklch(0.95 0.06 75)" />
+            )}
+          </div>
         </div>
-        <div style={{ color: "var(--px-mid)", fontSize: 14 }}>✎</div>
+        <div style={{ color: "var(--px-mid)", fontSize: 14, flexShrink: 0 }}>✎</div>
       </div>
 
       <Drawer open={open} onClose={close} title="Editar personal" subtitle="STAFF · PERSONAL DEL EDIFICIO">
@@ -119,9 +143,33 @@ export default function StaffCard({ staff }: { staff: StaffRow }) {
             </select>
           </Row>
           <Row>
-            <label style={LABEL}>Teléfono</label>
-            <input value={contact} onChange={(e) => setContact(e.target.value)}
-              placeholder="+56 9 1234 5678" style={FIELD} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <label style={LABEL}>Teléfono</label>
+                <input value={contact} onChange={(e) => setContact(e.target.value)}
+                  placeholder="+56 9 1234 5678" style={FIELD} />
+              </div>
+              <div>
+                <label style={LABEL}>Correo</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  placeholder="correo@ejemplo.com" style={FIELD} />
+              </div>
+            </div>
+          </Row>
+
+          <Row>
+            <label style={LABEL}>
+              Contacto de emergencia{" "}
+              <span style={{ fontWeight: 400, color: "var(--px-mid)", fontSize: 11 }}>
+                — a quién llamar si algo pasa en el turno
+              </span>
+            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <input value={emerNombre} onChange={(e) => setEmerNombre(e.target.value)}
+                placeholder="Nombre y parentesco" style={FIELD} />
+              <input value={emerFono} onChange={(e) => setEmerFono(e.target.value)}
+                placeholder="+56 9 8765 4321" style={FIELD} />
+            </div>
           </Row>
 
           {error && (
@@ -148,5 +196,19 @@ export default function StaffCard({ staff }: { staff: StaffRow }) {
         </form>
       </Drawer>
     </>
+  );
+}
+
+function Etiqueta({ texto, color, fondo }: { texto: string; color: string; fondo: string }) {
+  return (
+    <span
+      style={{
+        fontFamily: "var(--font-jetbrains-mono)", fontSize: 8.5,
+        letterSpacing: "0.06em", padding: "2px 6px", borderRadius: 4,
+        color, background: fondo, whiteSpace: "nowrap",
+      }}
+    >
+      {texto}
+    </span>
   );
 }

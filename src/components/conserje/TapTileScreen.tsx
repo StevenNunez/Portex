@@ -17,6 +17,7 @@ import AsistenciaDrawer, { type PresentStaff } from "./AsistenciaDrawer";
 import QrScanDrawer from "./QrScanDrawer";
 import SolicitudesDrawer from "./SolicitudesDrawer";
 import AvisosPorteria from "./AvisosPorteria";
+import MiFichaDrawer from "./MiFichaDrawer";
 import { solicitudesEsperando } from "@/app/autoregistro-actions";
 import { escucharPush } from "@/lib/push-navegador";
 import type { SolicitudPendiente } from "@/lib/autoregistro-tipos";
@@ -74,9 +75,11 @@ interface Props {
   solicitudes?: SolicitudPendiente[];
   /** Sin esta clave no hay avisos que ofrecer. */
   vapidPublicKey?: string;
+  /** Qué acceso va destacado en negro: el que más se usa en este edificio. */
+  tilePrincipal?: TileId;
 }
 
-export default function TapTileScreen({ initialActivity, initialTodayActivity, initialPendingParcels, residents, frequentVisitors, staffName, buildingName, initialApproved = [], initialPresentStaff = [], avisos = [], parkingSummary, solicitudes = [], vapidPublicKey = "" }: Props) {
+export default function TapTileScreen({ initialActivity, initialTodayActivity, initialPendingParcels, residents, frequentVisitors, staffName, buildingName, initialApproved = [], initialPresentStaff = [], avisos = [], parkingSummary, solicitudes = [], vapidPublicKey = "", tilePrincipal = "visita" }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [activity, setActivity]             = useState<ActivityItem[]>(initialActivity);
@@ -89,6 +92,7 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
   }
   const [showEncomiendas, setShowEncomiendas] = useState(false);
   const [showSolicitudes, setShowSolicitudes] = useState(false);
+  const [showMiFicha, setShowMiFicha] = useState(false);
 
   // La portería es un kiosco que queda abierto todo el turno. Sin esto, una
   // solicitud que entra a las 15:00 no aparece hasta que alguien recargue la
@@ -240,10 +244,16 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
             </span>
           )}
           <LiveClock />
-          <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, color: "var(--px-ink2)", padding: "6px 10px", borderRadius: 999, background: "white", border: "1px solid var(--px-line)" }}>
+          {/* El chip del turno abre la ficha propia: es el único lugar de la
+              portería que ya dice "yo", así que es donde uno lo busca. */}
+          <button
+            onClick={() => setShowMiFicha(true)}
+            title="Mis datos de contacto"
+            style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, color: "var(--px-ink2)", padding: "6px 10px", borderRadius: 999, background: "white", border: "1px solid var(--px-line)", cursor: "pointer" }}
+          >
             <span style={{ width: 6, height: 6, borderRadius: 3, background: "var(--px-ok)", flexShrink: 0 }} />
             {staffName ? staffName.split(" ")[0].toUpperCase() : "TURNO ACTIVO"}
-          </span>
+          </button>
           <AvisosPorteria vapidPublicKey={vapidPublicKey} />
           <button
             onClick={() => setShowEndShift(true)}
@@ -380,45 +390,45 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
       {/* ── Tile grid ────────────────────────────────────────────────── */}
       <section className="px-tiles" style={{ flex: 1, padding: "0 32px 14px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(2, 1fr)", gap: 14, minHeight: 0 }}>
         {TILES.map((tile) => {
-          const isPrimary = !!tile.primary;
-          const isAlert   = !!tile.alert;
+          // Cuál va en negro no está fijo en el código: es el acceso que más
+          // usa **este** edificio. La salida se queda en rojo pase lo que
+          // pase — el color ahí no es jerarquía, es significado.
+          const esPrincipal = tile.id === tilePrincipal && !tile.alert;
+          const variante = esPrincipal ? "principal" : tile.alert ? "alerta" : "normal";
+
           return (
             <button
               key={tile.id}
+              className="px-tile"
+              data-variante={variante}
               onClick={() => handleTileClick(tile.id)}
               style={{
                 position: "relative",
-                background: isPrimary ? "var(--px-ink)" : "white",
-                color:      isPrimary ? "var(--px-bone)" : "var(--px-ink)",
-                border:     isPrimary ? "none" : "1px solid var(--px-line)",
                 borderRadius: 18, padding: "clamp(16px, 4vw, 24px) clamp(16px, 4vw, 26px)", minHeight: 132,
                 textAlign: "left", cursor: "pointer",
                 display: "flex", flexDirection: "column", justifyContent: "space-between",
-                font: "inherit", transition: "opacity 0.1s, transform 0.1s",
+                font: "inherit",
                 gridColumn: tile.id === "salida" ? "1 / 3" : undefined,
               }}
-              onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-              onMouseUp={(e)   => (e.currentTarget.style.transform = "scale(1)")}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, letterSpacing: "0.08em", color: isPrimary ? "var(--px-mid2)" : isAlert ? "var(--px-alert)" : "var(--px-mid)" }}>
-                  {tile.kicker ?? (isPrimary ? "ACCIÓN PRINCIPAL" : isAlert ? "SALIDAS" : "INGRESO · TIPO")}
+                <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, letterSpacing: "0.08em", color: "var(--tile-suave)" }}>
+                  {tile.kicker ?? (esPrincipal ? "LO QUE MÁS REGISTRAS" : tile.alert ? "SALIDAS" : "INGRESO · TIPO")}
                 </span>
               </div>
               <div>
-                <div style={{ fontSize: "clamp(22px, 5.5vw, 40px)", fontWeight: 600, letterSpacing: "-0.025em", lineHeight: 1, marginBottom: 6, color: isAlert && !isPrimary ? "var(--px-alert)" : isPrimary ? "var(--px-bone)" : "var(--px-ink)" }}>
+                <div style={{ fontSize: "clamp(22px, 5.5vw, 40px)", fontWeight: 600, letterSpacing: "-0.025em", lineHeight: 1, marginBottom: 6, color: "var(--tile-titulo)" }}>
                   {tile.label}
                 </div>
-                <div style={{ fontSize: 14, color: isPrimary ? "oklch(0.92 0.005 60)" : "var(--px-mid)" }}>
+                <div style={{ fontSize: 14, color: "var(--tile-suave)" }}>
                   {tile.hint}
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8, fontSize: 12, color: isPrimary ? "oklch(0.92 0.005 60)" : "var(--px-mid)" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8, fontSize: 12, color: "var(--tile-suave)" }}>
                 {/* En dos columnas la frase se parte en dos líneas y el botón
                     queda descuadrado. El círculo con el + dice lo mismo. */}
                 <span className="px-solo-ancho" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>Tap para registrar</span>
-                <span style={{ width: 32, height: 32, borderRadius: 16, background: isPrimary ? "var(--px-bone)" : isAlert ? "var(--px-alert)" : "var(--px-ink)", color: isPrimary ? "var(--px-ink)" : "var(--px-bone)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ width: 32, height: 32, borderRadius: 16, background: "var(--tile-punto)", color: "var(--tile-punto-fg)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <IconPlus size={16} />
                 </span>
               </div>
@@ -517,6 +527,8 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
         onClose={() => setOpenTile(null)}
         onRegistered={handleRegistered}
       />
+
+      <MiFichaDrawer open={showMiFicha} onClose={() => setShowMiFicha(false)} />
 
       <SolicitudesDrawer
         open={showSolicitudes}

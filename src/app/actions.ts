@@ -697,6 +697,7 @@ export async function addStaffMember(input: {
     rut: input.rut ?? null,
     role: input.role ?? "Conserje",
     contact: input.contact ?? null,
+    email: input.email?.trim().toLowerCase() || null,
     active: true,
   });
 
@@ -730,6 +731,9 @@ export async function updateStaffMember(
     rut?: string;
     role?: string;
     contact?: string;
+    email?: string;
+    emergencyName?: string;
+    emergencyPhone?: string;
   }
 ): Promise<{ ok: boolean; error?: string }> {
   const ctx = await getAdminContext();
@@ -744,11 +748,136 @@ export async function updateStaffMember(
       rut: input.rut ?? null,
       role: input.role ?? "Conserje",
       contact: input.contact ?? null,
+      email: input.email?.trim().toLowerCase() || null,
+      emergency_name: input.emergencyName?.trim() || null,
+      emergency_phone: input.emergencyPhone?.trim() || null,
     })
     .eq("id", id)
     .eq("building_id", ctx.buildingId);
 
   if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/personal");
+  return { ok: true };
+}
+
+/**
+ * La ficha del propio trabajador, para que la mantenga él.
+ *
+ * El administrador no puede andar persiguiendo a diez conserjes para saber si
+ * cambiaron de teléfono. El que sabe es cada uno, y esto le deja corregir lo
+ * suyo desde la pantalla de portería.
+ *
+ * Lo que **no** puede tocar: su nombre, su rol, su RUT. Eso es identidad
+ * laboral y la mantiene quien administra; si un conserje pudiera cambiarse el
+ * rol, la asistencia y los turnos dejarían de significar algo.
+ */
+export async function verMiFicha(): Promise<{
+  id: string;
+  name: string;
+  role: string;
+  contact: string | null;
+  email: string | null;
+  emergencyName: string | null;
+  emergencyPhone: string | null;
+} | null> {
+  const user = await getSessionUser();
+  if (!user) return null;
+
+  const db = createServiceClient();
+  const { data: propia, error } = await db
+    .from("staff")
+    .select("id, name, role, contact, email, emergency_name, emergency_phone")
+    .eq("profile_id", user.id)
+    .eq("active", true)
+    .maybeSingle();
+
+  if (error) return null;
+
+  // Sin ficha ligada todavía: se busca una que lleve su correo y no tenga
+  // dueño, y se adopta.
+  //
+  // Hace falta porque el vínculo se escribe al aceptar una invitación, y el
+  // equipo que ya estaba trabajando cuando llegó esta versión nunca pasó por
+  // ahí. Sin esto, en un edificio real **ningún** conserje actual podría ver
+  // su ficha: solo los que entren de aquí en adelante.
+  const data = propia ?? (await adoptarFichaPorCorreo(user.id, user.email));
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    name: data.name,
+    role: data.role,
+    contact: data.contact,
+    email: data.email,
+    emergencyName: data.emergency_name,
+    emergencyPhone: data.emergency_phone,
+  };
+}
+
+/**
+ * Busca una ficha de personal con este correo y sin dueño, y se la asigna a
+ * la cuenta. Devuelve la ficha adoptada, o null si no había ninguna.
+ */
+async function adoptarFichaPorCorreo(userId: string, email?: string) {
+  if (!email) return null;
+
+  const db = createServiceClient();
+
+  // Solo dentro del edificio de su propia organización: un correo repetido en
+  // otro condominio no puede arrastrar la ficha de un tercero.
+  const { data: profile } = await db
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (!profile?.organization_id) return null;
+
+  const { data: edificio } = await db
+    .from("buildings")
+    .select("id")
+    .eq("organization_id", profile.organization_id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!edificio?.id) return null;
+
+  const { data: adoptada } = await db
+    .from("staff")
+    .update({ profile_id: userId })
+    .eq("building_id", edificio.id)
+    .ilike("email", email)
+    .is("profile_id", null)
+    .eq("active", true)
+    .select("id, name, role, contact, email, emergency_name, emergency_phone")
+    .maybeSingle();
+
+  return adoptada ?? null;
+}
+
+export async function guardarMiFicha(input: {
+  contact?: string;
+  emergencyName?: string;
+  emergencyPhone?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const user = await getSessionUser();
+  if (!user) return { ok: false, error: "No autenticado" };
+
+  const db = createServiceClient();
+  // El filtro por `profile_id` es la autorización: solo se puede escribir la
+  // fila que ya está ligada a esta cuenta. El id nunca viaja desde el cliente.
+  const { error } = await db
+    .from("staff")
+    .update({
+      contact: input.contact?.trim() || null,
+      emergency_name: input.emergencyName?.trim() || null,
+      emergency_phone: input.emergencyPhone?.trim() || null,
+    })
+    .eq("profile_id", user.id);
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/conserje");
+  revalidatePath("/admin/personal");
   return { ok: true };
 }
 
@@ -1011,12 +1140,15 @@ export async function inviteConserje(input: {
 
   if (error) return { ok: false, error: error.message };
 
-  // Create the staff record so they appear in the personnel list immediately
+  // Create the staff record so they appear in the personnel list immediately.
+  // El correo va guardado: es lo que permite reconocer esta ficha cuando la
+  // persona acepte la invitación y entre por primera vez.
   if (building?.id) {
     await db.from("staff").insert({
       building_id: building.id,
       name: input.name ?? input.email,
       role: "Conserje",
+      email: input.email.trim().toLowerCase(),
       active: true,
     });
   }
@@ -1094,6 +1226,28 @@ export async function syncInvitedProfile(input: {
   });
 
   if (error) return { ok: false, error: error.message };
+
+  // Conserje invitado: su ficha de personal pasa a tener dueño. Sin esto la
+  // ficha queda huérfana —el administrador la mantiene a mano y el trabajador
+  // no puede corregir ni su propio teléfono—. Se reconoce por el correo, que
+  // es con lo que se lo invitó.
+  if ((role === "conserje" || role === "admin") && user.email) {
+    const { data: edificio } = await db
+      .from("buildings")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .limit(1)
+      .maybeSingle();
+
+    if (edificio?.id) {
+      await db
+        .from("staff")
+        .update({ profile_id: user.id })
+        .eq("building_id", edificio.id)
+        .ilike("email", user.email)
+        .is("profile_id", null);
+    }
+  }
 
   // Residente invitado: dejarlo ligado a su unidad, que es lo que le
   // permite aprobar visitas.

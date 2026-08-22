@@ -1,7 +1,7 @@
 "use server";
 
 import { createServerClient } from "./supabase-server";
-import { hourInChile, startOfTodayUtc, todayInChile } from "./fecha";
+import { daysAgoInChile, hourInChile, startOfDayUtc, startOfTodayUtc, todayInChile } from "./fecha";
 import type { AccessType } from "./database.types";
 import { getPendingParcels } from "./encomiendas";
 
@@ -57,6 +57,13 @@ export interface StaffRow {
   role: string;
   rut: string | null;
   contact: string | null;
+  /** El correo con el que entra a Portex. */
+  email: string | null;
+  /** A quién llamar si algo pasa en el turno. */
+  emergency_name: string | null;
+  emergency_phone: string | null;
+  /** Su cuenta de Portex, si ya entró. */
+  profile_id: string | null;
 }
 
 export interface ShiftRow {
@@ -290,16 +297,42 @@ export async function getAllActivity(
   return data ?? [];
 }
 
+const CAMPOS_STAFF = "id, name, role, rut, contact";
+const CAMPOS_STAFF_FICHA = `${CAMPOS_STAFF}, email, emergency_name, emergency_phone, profile_id`;
+
 export async function getStaff(buildingId: string): Promise<StaffRow[]> {
   const db = createServerClient();
+
+  const completo = await db
+    .from("staff")
+    .select(CAMPOS_STAFF_FICHA)
+    .eq("building_id", buildingId)
+    .eq("active", true)
+    .order("name");
+
+  if (!completo.error) return (completo.data ?? []) as StaffRow[];
+
+  // Igual que con el padrón: esta lista alimenta pantallas de operación
+  // —turnos, asistencia, portería— y no puede caerse porque falte correr
+  // `migration_v15_ficha_personal.sql`. Se pide lo de siempre y la ficha
+  // queda vacía hasta que la migración exista.
+  if (completo.error.code !== COLUMNA_INEXISTENTE) throw completo.error;
+
   const { data, error } = await db
     .from("staff")
-    .select("id, name, role, rut, contact")
+    .select(CAMPOS_STAFF)
     .eq("building_id", buildingId)
     .eq("active", true)
     .order("name");
   if (error) throw error;
-  return (data ?? []) as StaffRow[];
+
+  return (data ?? []).map((s) => ({
+    ...s,
+    email: null,
+    emergency_name: null,
+    emergency_phone: null,
+    profile_id: null,
+  })) as StaffRow[];
 }
 
 export async function getAllShifts(buildingId: string, limit = 60): Promise<ShiftRow[]> {
@@ -330,4 +363,48 @@ export async function getTodayShifts(buildingId: string): Promise<ShiftRow[]> {
 
   if (error) throw error;
   return (data ?? []) as unknown as ShiftRow[];
+}
+
+
+/**
+ * Cuál de los accesos usa más este edificio.
+ *
+ * El botón negro de la portería marcaba siempre "Visita" porque estaba escrito
+ * así en el código. Pero un edificio de oficinas registra sobre todo
+ * proveedores, y uno con mucho comercio electrónico, entregas: el destacado
+ * tiene que salir de lo que ahí pasa, no de lo que supusimos.
+ *
+ * Solo compiten los tres accesos de ingreso. **La salida no entra**: su rojo
+ * no es jerarquía, es significado, y pintarla de negro rompería la única señal
+ * de color que tiene la pantalla. El escaneo tampoco: es confirmar un pase que
+ * ya venía autorizado, no registrar a alguien nuevo.
+ *
+ * Treinta días: suficiente para reflejar cómo funciona el edificio, y
+ * suficientemente largo para que el botón no cambie de color cada semana.
+ */
+export async function getTilePrincipal(buildingId: string): Promise<"visita" | "entrega" | "proveedor"> {
+  const db = createServerClient();
+
+  const { data, error } = await db
+    .from("access_log")
+    .select("type")
+    .eq("building_id", buildingId)
+    .gte("recorded_at", startOfDayUtc(daysAgoInChile(30)))
+    .in("type", ["in", "delivery", "parcel", "provider"]);
+
+  // Sin datos —o si algo falla— manda "Visita": es lo que más pasa en una
+  // portería y es lo que el conserje espera encontrar en negro.
+  if (error || !data || data.length === 0) return "visita";
+
+  const cuenta = { visita: 0, entrega: 0, proveedor: 0 };
+  for (const fila of data) {
+    if (fila.type === "in") cuenta.visita++;
+    else if (fila.type === "delivery" || fila.type === "parcel") cuenta.entrega++;
+    else if (fila.type === "provider") cuenta.proveedor++;
+  }
+
+  // El empate lo gana Visita, por lo mismo: es el caso por defecto.
+  if (cuenta.entrega > cuenta.visita && cuenta.entrega >= cuenta.proveedor) return "entrega";
+  if (cuenta.proveedor > cuenta.visita && cuenta.proveedor > cuenta.entrega) return "proveedor";
+  return "visita";
 }

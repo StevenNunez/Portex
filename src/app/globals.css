@@ -365,11 +365,90 @@ img, svg, video, canvas {
     text-align: center;
     gap: 28px;
   }
-  .px-cartel svg {
+  /* Solo el QR se agranda. El logo de la marca vive dentro del mismo bloque
+     y con un selector suelto salía del tamaño de un afiche. */
+  .px-cartel > svg {
     width: 320px !important;
     height: 320px !important;
   }
   .px-sin-imprimir {
     display: none !important;
   }
+}
+
+/* ── Los botones grandes de la portería ───────────────────────────────────
+   Los colores viven acá y no en el `style` del componente por una razón
+   concreta: un estilo inline no puede tener `:hover`, y lo que se pedía era
+   justamente que la tarjeta reaccione al pasar el cursor o al tocarla.
+   El componente solo dice de qué tipo es cada tile; los tonos salen de estas
+   variables, y el hover los reescribe de una sola vez. */
+
+.px-tile {
+  --tile-fondo:   white;
+  --tile-texto:   var(--px-ink);
+  --tile-titulo:  var(--px-ink);
+  --tile-suave:   var(--px-mid);
+  --tile-borde:   var(--px-line);
+  --tile-punto:   var(--px-ink);
+  --tile-punto-fg: var(--px-bone);
+
+  background: var(--tile-fondo);
+  color: var(--tile-texto);
+  border: 1px solid var(--tile-borde);
+  transition: background 0.14s, color 0.14s, border-color 0.14s, transform 0.1s;
+}
+
+/* La acción principal: la que más se usa en este edificio. */
+.px-tile[data-variante="principal"] {
+  --tile-fondo:   var(--px-ink);
+  --tile-texto:   var(--px-bone);
+  --tile-titulo:  var(--px-bone);
+  --tile-suave:   oklch(0.92 0.005 60);
+  --tile-borde:   transparent;
+  --tile-punto:   var(--px-bone);
+  --tile-punto-fg: var(--px-ink);
+}
+
+/* Salida: el rojo significa "sale", y se mantiene incluso en negro. */
+.px-tile[data-variante="alerta"] {
+  --tile-titulo:  var(--px-alert);
+  --tile-punto:   var(--px-alert);
+  --tile-punto-fg: white;
+}
+
+/* Al pasar el cursor, cualquiera se pone como la principal. Solo donde hay
+   cursor de verdad: en una pantalla táctil `:hover` se queda pegado después
+   de tocar y la tarjeta quedaría negra para siempre. */
+@media (hover: hover) {
+  .px-tile:hover {
+    --tile-fondo:   var(--px-ink);
+    --tile-texto:   var(--px-bone);
+    --tile-titulo:  var(--px-bone);
+    --tile-suave:   oklch(0.92 0.005 60);
+    --tile-borde:   transparent;
+    --tile-punto:   var(--px-bone);
+    --tile-punto-fg: var(--px-ink);
+  }
+  .px-tile[data-variante="alerta"]:hover {
+    --tile-titulo:  oklch(0.72 0.20 28);
+    --tile-punto:   var(--px-alert);
+    --tile-punto-fg: white;
+  }
+}
+
+/* Al tocar, en cualquier pantalla: es el único aviso que recibe el dedo. */
+.px-tile:active {
+  --tile-fondo:   var(--px-ink);
+  --tile-texto:   var(--px-bone);
+  --tile-titulo:  var(--px-bone);
+  --tile-suave:   oklch(0.92 0.005 60);
+  --tile-borde:   transparent;
+  --tile-punto:   var(--px-bone);
+  --tile-punto-fg: var(--px-ink);
+  transform: scale(0.98);
+}
+.px-tile[data-variante="alerta"]:active {
+  --tile-titulo:  oklch(0.72 0.20 28);
+  --tile-punto:   var(--px-alert);
+  --tile-punto-fg: white;
 }

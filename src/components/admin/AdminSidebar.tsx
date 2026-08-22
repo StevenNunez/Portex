@@ -18,6 +18,7 @@ const NAV = [
 
   { section: "PERSONAS" },
   { id: "residentes",  href: "/admin/residentes",   label: "Residentes",       hint: "" },
+  { id: "personal",    href: "/admin/personal",     label: "Personal",         hint: "" },
   { id: "turnos",      href: "/admin/turnos",       label: "Turnos",           hint: "" },
   { id: "asistencia",  href: "/admin/asistencia",   label: "Asistencia",       hint: "" },
   { id: "jardineria",  label: "Jardinería",   soon: true },
