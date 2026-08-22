@@ -158,5 +158,22 @@ export function construirUnidad(torre: string, depto: string, formato: FormatoUn
     (existente) => existente.toLowerCase() === t.toLowerCase()
   );
 
-  return `${conocida ?? t.toUpperCase()}${formato.separador || "-"}${relleno}`;
+  return `${conocida ?? presentarTorre(t)}${formato.separador || "-"}${relleno}`;
+}
+
+/**
+ * Una torre nueva, escrita como se escribe.
+ *
+ * "a" es la torre A y va en mayúscula. Pero hay edificios cuyas torres tienen
+ * nombre —"Chañar 987", "Los Aromos"— y ahí gritar CHAÑAR 987 en el padrón se
+ * ve mal y no es como nadie lo escribe. Mismo criterio que usa el importador
+ * de Excel, para que un padrón cargado por archivo y otro escrito a mano
+ * queden iguales.
+ */
+function presentarTorre(t: string): string {
+  if (t.length <= 2) return t.toUpperCase();
+  return t
+    .split(/\s+/)
+    .map((palabra) => palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase())
+    .join(" ");
 }

@@ -144,6 +144,7 @@ export default function ResidentesClient({
   const [editHousehold, setEditHousehold] = useState("");
   const [editRut, setEditRut]         = useState("");
   const [editContact, setEditContact] = useState("");
+  const [editEmail, setEditEmail]     = useState("");
   const [editStatus, setEditStatus]   = useState<Status>("activo");
   const [editTipo, setEditTipo]       = useState<Tipo>("");
   const [editLoading, setEditLoading] = useState(false);
@@ -154,6 +155,7 @@ export default function ResidentesClient({
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError]     = useState<string | null>(null);
   const [inviteDone, setInviteDone]       = useState(false);
+  const [editandoCorreo, setEditandoCorreo] = useState(false);
 
   function openEdit(row: ResidentRow) {
     setEditing(row);
@@ -162,6 +164,7 @@ export default function ResidentesClient({
     setEditHousehold(row.household ?? "");
     setEditRut(row.rut ?? "");
     setEditContact(row.contact ?? "");
+    setEditEmail(row.invite_email ?? "");
     setEditStatus((row.status as Status) ?? "activo");
     setEditTipo((row.tags.find((t) => t === "Propietario" || t === "Arrendatario") ?? "") as Tipo);
     setEditError(null);
@@ -176,6 +179,7 @@ export default function ResidentesClient({
   function openInvite(row: ResidentRow) {
     setInviting(row);
     setInviteEmail(correoDeResidente(row));
+    setEditandoCorreo(false);
     setInviteError(null);
     setInviteDone(false);
   }
@@ -217,6 +221,7 @@ export default function ResidentesClient({
       household: editHousehold || undefined,
       rut: editRut || undefined,
       contact: editContact || undefined,
+      email: editEmail || undefined,
       status: editStatus,
       tipo: editTipo || undefined,
     });
@@ -619,17 +624,54 @@ export default function ResidentesClient({
                 {inviting.unit_code}. Ahí puede anunciar visitas y aprobar a quien llegue a buscarlo.
               </p>
 
-              <div style={{ marginBottom: 16 }}>
-                <label style={LABEL}>Correo del residente</label>
-                <input
-                  required
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="correo@ejemplo.com"
-                  style={FIELD}
-                />
-              </div>
+              {/* Si el correo ya está en el padrón no se vuelve a tipear: se
+                  muestra y se manda. Escribirlo de nuevo en cada invitación es
+                  trabajo repetido y una oportunidad más de equivocarse.
+                  Igual queda a un clic de corregirse, porque el correo del
+                  padrón puede estar viejo. */}
+              {correoDeResidente(inviting) && !editandoCorreo ? (
+                <div
+                  style={{
+                    marginBottom: 16, padding: "12px 14px", borderRadius: 9,
+                    background: "var(--px-paper)", border: "1px solid var(--px-line2)",
+                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--px-mid2)" }}>
+                      SE ENVÍA A
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 500, marginTop: 2, wordBreak: "break-all" }}>
+                      {inviteEmail}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditandoCorreo(true)}
+                    style={{
+                      flexShrink: 0, background: "none", border: "1px solid var(--px-line)",
+                      borderRadius: 7, padding: "6px 10px", fontSize: 12,
+                      color: "var(--px-mid)", cursor: "pointer",
+                      fontFamily: "var(--font-inter-tight), Inter, system-ui, sans-serif",
+                    }}
+                  >
+                    Cambiar
+                  </button>
+                </div>
+              ) : (
+                <div style={{ marginBottom: 16 }}>
+                  <label style={LABEL}>Correo del residente</label>
+                  <input
+                    required
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="correo@ejemplo.com"
+                    style={FIELD}
+                    autoFocus
+                  />
+                </div>
+              )}
 
               {inviteError && (
                 <div style={{ fontSize: 13, color: "var(--px-alert)", marginBottom: 14 }}>
@@ -637,7 +679,7 @@ export default function ResidentesClient({
                 </div>
               )}
 
-              <button type="submit" disabled={inviteLoading} style={BTN_PRIMARY}>
+              <button type="submit" disabled={inviteLoading || !inviteEmail} style={{ ...BTN_PRIMARY, opacity: inviteLoading || !inviteEmail ? 0.5 : 1 }}>
                 {inviteLoading ? "Enviando…" : "Enviar invitación"}
               </button>
             </form>
@@ -652,10 +694,13 @@ export default function ResidentesClient({
 
             <div style={{ marginBottom: 16 }}>
               <label style={LABEL}>Código de unidad</label>
+              {/* Sin `toUpperCase`: hay torres con nombre —"Chañar 987"— y
+                  forzar mayúsculas las dejaba gritando y, peor, guardaba un
+                  código distinto al que armó el formulario de alta. */}
               <input
                 required value={editUnit}
-                onChange={(e) => setEditUnit(e.target.value.toUpperCase())}
-                style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}
+                onChange={(e) => setEditUnit(e.target.value)}
+                style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600, letterSpacing: "0.04em" }}
               />
               <div style={{ fontSize: 11, color: "var(--px-mid)", marginTop: 4 }}>
                 Cambiar la unidad refleja una mudanza o reasignación.
@@ -703,12 +748,25 @@ export default function ResidentesClient({
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={LABEL}>Grupo familiar</label>
-              <input value={editHousehold} onChange={(e) => setEditHousehold(e.target.value)} placeholder="Ej: Juan + 2 hijos" style={FIELD} />
+              <label style={LABEL}>
+                Correo{" "}
+                <span style={{ color: "var(--px-mid)", fontWeight: 400, fontSize: 11 }}>
+                  — con esto entra a la app
+                </span>
+              </label>
+              <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)}
+                placeholder="correo@ejemplo.com" style={FIELD} />
             </div>
 
             <div style={{ marginBottom: 16 }}>
               <label style={LABEL}>Estado</label>
+              {/* Se explica acá porque "pendiente" e "inactivo" no significan
+                  nada por sí solos. Un residente nuevo entra activo sin que
+                  nadie elija: esto es para el día que alguien se muda. */}
+              <div style={{ fontSize: 11.5, color: "var(--px-mid)", margin: "-2px 0 8px", lineHeight: 1.5 }}>
+                Activo: vive acá. Pendiente: aún no confirma. Inactivo: se mudó — deja de
+                aparecer en portería, pero su historial se conserva.
+              </div>
               <div style={{ display: "flex", gap: 8 }}>
                 {(["activo", "pendiente", "inactivo"] as Status[]).map((s) => (
                   <button

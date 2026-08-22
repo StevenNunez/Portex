@@ -503,6 +503,8 @@ export async function addResident(input: {
   household?: string;
   rut?: string;
   contact?: string;
+  /** Con este correo se le da acceso a la app. Sin correo no hay cuenta posible. */
+  email?: string;
   status?: "activo" | "pendiente" | "inactivo";
 }): Promise<{ ok: boolean; error?: string }> {
   const ctx = await getAdminContext();
@@ -517,6 +519,9 @@ export async function addResident(input: {
     household: input.household ?? null,
     rut: input.rut ?? null,
     contact: input.contact ?? null,
+    // Queda anotado para poder invitarlo; que esté acá no significa que ya se
+    // le haya mandado nada — eso lo dice `invited_at`.
+    invite_email: input.email?.trim().toLowerCase() || null,
     status: input.status ?? "activo",
     tags: [],
   });
@@ -545,7 +550,10 @@ export async function addParkingSpot(input: {
   const code = input.code.trim().toUpperCase();
   if (!code) return { ok: false, error: "Falta el número o código" };
 
-  const unitCode = input.kind === "residente" ? input.unitCode?.trim().toUpperCase() : null;
+  // Sin `toUpperCase`: el estacionamiento se liga al departamento comparando
+  // el código tal cual ("Chañar 987 · 0012"). En mayúsculas no calzaba con el
+  // padrón y el residente se quedaba sin ver su estacionamiento.
+  const unitCode = input.kind === "residente" ? input.unitCode?.trim() : null;
   if (input.kind === "residente" && !unitCode) {
     return { ok: false, error: "Un estacionamiento de residente necesita su departamento" };
   }
@@ -614,6 +622,7 @@ export async function updateResident(
     household?: string;
     rut?: string;
     contact?: string;
+    email?: string;
     status: "activo" | "pendiente" | "inactivo";
     tipo?: "Propietario" | "Arrendatario" | "";
   }
@@ -629,11 +638,14 @@ export async function updateResident(
   const { error } = await db
     .from("residents")
     .update({
-      unit_code: input.unitCode.trim().toUpperCase(),
+      // Se guarda tal cual se escribió: el código puede llevar el nombre de
+      // la torre y `toUpperCase` lo destruía.
+      unit_code: input.unitCode.trim(),
       name: input.name.trim(),
       household: input.household?.trim() || null,
       rut: input.rut?.trim() || null,
       contact: input.contact?.trim() || null,
+      invite_email: input.email?.trim().toLowerCase() || null,
       status: input.status,
       tags,
     })
@@ -955,7 +967,9 @@ export async function importResidents(
 
     return {
       building_id: ctx.buildingId!,
-      unit_code: r.unitCode.trim().toUpperCase(),
+      // El importador ya arma el código con su formato ("Norte-101"): pasarlo
+      // por `toUpperCase` lo devolvía a "NORTE-101".
+      unit_code: r.unitCode.trim(),
       name: r.name.trim(),
       household: r.household?.trim() || null,
       rut: r.rut?.trim() || null,

@@ -7,8 +7,6 @@ import { addResident } from "@/app/actions";
 import { formatoDelPadron } from "@/app/padron-actions";
 import { construirUnidad, type FormatoUnidad } from "@/lib/residentes";
 
-type Status = "activo" | "pendiente" | "inactivo";
-
 function Row({ children }: { children: React.ReactNode }) {
   return <div style={{ marginBottom: 16 }}>{children}</div>;
 }
@@ -24,10 +22,9 @@ export default function AddResidenteButton() {
   const [formato, setFormato] = useState<FormatoUnidad>({ separador: "-", digitos: 0, torres: [] });
   const [existentes, setExistentes] = useState<string[]>([]);
   const [name, setName] = useState("");
-  const [household, setHousehold] = useState("");
+  const [email, setEmail] = useState("");
   const [rut, setRut] = useState("");
   const [contact, setContact] = useState("");
-  const [status, setStatus] = useState<Status>("activo");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +47,7 @@ export default function AddResidenteButton() {
   const yaExiste = unitCode !== "" && existentes.includes(unitCode);
 
   function reset() {
-    setTorre(""); setDepto(""); setName(""); setHousehold(""); setRut(""); setContact(""); setStatus("activo"); setError(null);
+    setTorre(""); setDepto(""); setName(""); setEmail(""); setRut(""); setContact(""); setError(null);
   }
 
   function close() { setOpen(false); reset(); }
@@ -62,10 +59,9 @@ export default function AddResidenteButton() {
     const res = await addResident({
       unitCode,
       name,
-      household: household || undefined,
+      email: email || undefined,
       rut: rut || undefined,
       contact: contact || undefined,
-      status,
     });
     if (res.ok) {
       close();
@@ -75,12 +71,6 @@ export default function AddResidenteButton() {
     }
     setLoading(false);
   }
-
-  const STATUS_OPTS: { value: Status; label: string }[] = [
-    { value: "activo",    label: "Activo" },
-    { value: "pendiente", label: "Pendiente" },
-    { value: "inactivo",  label: "Inactivo" },
-  ];
 
   return (
     <>
@@ -106,14 +96,17 @@ export default function AddResidenteButton() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <label style={LABEL}>
-                  Torre {formato.torres.length === 0 && <span style={{ color: "var(--px-mid)", fontWeight: 400 }}>— si tiene</span>}
+                  Torre{" "}
+                  <span style={{ color: "var(--px-mid)", fontWeight: 400, fontSize: 11 }}>
+                    — número o nombre
+                  </span>
                 </label>
                 <input
                   value={torre}
                   onChange={(e) => setTorre(e.target.value)}
-                  placeholder={formato.torres[0] ?? "A"}
+                  placeholder={formato.torres[0] ?? "A, 1, Chañar 987"}
                   list={formato.torres.length > 0 ? "torres-edificio" : undefined}
-                  style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600, textTransform: "uppercase" }}
+                  style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600 }}
                 />
                 {formato.torres.length > 0 && (
                   <datalist id="torres-edificio">
@@ -162,9 +155,18 @@ export default function AddResidenteButton() {
               placeholder="Nombre y apellido" style={FIELD} />
           </Row>
           <Row>
-            <label style={LABEL}>Grupo familiar</label>
-            <input value={household} onChange={(e) => setHousehold(e.target.value)}
-              placeholder="Ej: Juan López + 2 hijos" style={FIELD} />
+            <label style={LABEL}>
+              Correo{" "}
+              <span style={{ color: "var(--px-mid)", fontWeight: 400, fontSize: 11 }}>
+                — con esto entra a la app
+              </span>
+            </label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+              placeholder="correo@ejemplo.com" style={FIELD} />
+            <div style={{ fontSize: 11.5, color: "var(--px-mid)", marginTop: 4, lineHeight: 1.5 }}>
+              Sin correo queda en el padrón, pero no puede autorizar visitas ni recibir avisos.
+              Se puede agregar después.
+            </div>
           </Row>
           <Row>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -180,29 +182,6 @@ export default function AddResidenteButton() {
               </div>
             </div>
           </Row>
-          <Row>
-            <label style={LABEL}>Estado</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              {STATUS_OPTS.map((s) => (
-                <button
-                  key={s.value} type="button"
-                  onClick={() => setStatus(s.value)}
-                  style={{
-                    flex: 1, padding: "8px 0",
-                    borderRadius: 8, fontSize: 12.5, fontWeight: 500,
-                    fontFamily: "var(--font-inter-tight), Inter, system-ui, sans-serif",
-                    cursor: "pointer",
-                    border: status === s.value ? "2px solid var(--px-ink)" : "1px solid var(--px-line)",
-                    background: status === s.value ? "var(--px-ink)" : "white",
-                    color: status === s.value ? "var(--px-bone)" : "var(--px-ink2)",
-                  }}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </Row>
-
           {error && (
             <div style={{ marginBottom: 16, padding: "9px 12px", borderRadius: 8, background: "oklch(0.96 0.05 28)", color: "var(--px-alert)", fontSize: 13, border: "1px solid oklch(0.88 0.12 28)" }}>
               {error}
