@@ -7,6 +7,7 @@ import { getApprovedAwaitingEntry } from "@/lib/citofono";
 import { getParkingSummary } from "@/lib/parking";
 import { getPresentStaff } from "@/lib/asistencia";
 import { getActiveNotices } from "@/lib/avisos";
+import { solicitudesPendientes } from "@/lib/autoregistro";
 import { registerConserjeArrival } from "@/app/actions";
 import type { ActivityItem, Resident, FrequentVisitor } from "@/lib/mock-data";
 
@@ -26,7 +27,7 @@ export default async function ConserjeHomePage() {
 
   const { buildingId, staffName } = ctx;
 
-  const [activityRows, todayRows, residentRows, freqRows, pendingParcelRows, approvedRows, parkingSummary, presentStaff, avisos] = await Promise.all([
+  const [activityRows, todayRows, residentRows, freqRows, pendingParcelRows, approvedRows, parkingSummary, presentStaff, avisos, solicitudes] = await Promise.all([
     getRecentActivity(20, buildingId),          // feed de actividad reciente (strip inferior)
     getRecentActivity(200, buildingId),         // lista completa del día para SalidaDrawer
     getResidents(buildingId),
@@ -36,6 +37,7 @@ export default async function ConserjeHomePage() {
     getParkingSummary(buildingId),               // null si el edificio no usa el módulo
     getPresentStaff(buildingId),                 // personal con jornada abierta
     getActiveNotices(buildingId),                // cortes y trabajos del día
+    solicitudesPendientes(buildingId),           // vecinos que escanearon el cartel
   ]);
 
 
@@ -99,6 +101,8 @@ export default async function ConserjeHomePage() {
       staffName={staffName}
       buildingName={ctx.buildingName ?? undefined}
       parkingSummary={parkingSummary}
+      solicitudes={solicitudes}
+      vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
       avisos={avisos.map((a) => ({
         id: a.id,
         kind: a.kind,

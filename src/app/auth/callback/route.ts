@@ -81,9 +81,19 @@ export async function GET(request: NextRequest) {
   if (h && h.indexOf('access_token') !== -1) {
     // Forward the hash so the Supabase browser client can exchange it
     window.location.replace(dest + h);
-  } else {
-    window.location.replace('/login?error=auth_callback');
+    return;
   }
+  // Supabase devuelve el motivo en el hash cuando el enlace ya se usó o
+  // venció (\`error_code=otp_expired\`). Antes caía en un login mudo: la
+  // persona veía "iniciar sesión" sin saber que su invitación se había
+  // quemado. Ahora va a una página que lo dice y explica cómo seguir.
+  if (h && h.indexOf('error') !== -1) {
+    var p = new URLSearchParams(h.replace(/^#/, ''));
+    var codigo = p.get('error_code') || p.get('error') || 'invalido';
+    window.location.replace('/invitacion?error=' + encodeURIComponent(codigo));
+    return;
+  }
+  window.location.replace('/invitacion?error=sin_token');
 })();
 </script></body></html>`;
 

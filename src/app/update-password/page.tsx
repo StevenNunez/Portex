@@ -5,7 +5,8 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
-import { syncInvitedProfile } from "@/app/actions";
+import { syncInvitedProfile, datosDeInvitacion } from "@/app/actions";
+import MarcaPortex from "@/components/MarcaPortex";
 
 const INPUT: CSSProperties = {
   width: "100%",
@@ -42,6 +43,9 @@ export default function UpdatePasswordPage() {
   const [confirmPassword,  setConfirmPassword]  = useState("");
   const [error,            setError]            = useState<string | null>(null);
   const [loading,          setLoading]          = useState(false);
+  // Con qué correo entra y a qué edificio queda ligado: sin esto la pantalla
+  // parece un registro desde cero y uno no sabe si quedó dentro del condominio.
+  const [contexto, setContexto] = useState<{ email: string | null; orgName: string | null; buildingName: string | null } | null>(null);
 
   // ── Session detection ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -75,6 +79,10 @@ export default function UpdatePasswordPage() {
           }
           setPhase("form");
         });
+
+      datosDeInvitacion()
+        .then((d) => setContexto({ email: d.email, orgName: d.orgName, buildingName: d.buildingName }))
+        .catch(() => {});
     }
 
     // Fast path: session already in cookies (PKCE flow)
@@ -156,15 +164,13 @@ export default function UpdatePasswordPage() {
 
   const heading = isInvited ? "Configura tu cuenta" : "Actualizar contraseña";
   const subtext  = isInvited
-    ? "Elige una contraseña para acceder a Portex."
+    ? "Tu cuenta ya está creada. Elige una contraseña y entras."
     : "Ingresa tu nueva contraseña.";
   const btnLabel = loading ? "Guardando…" : isInvited ? "Entrar a Portex →" : "Guardar contraseña";
 
   return (
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--px-bone)", padding: "40px 20px" }}>
-      <Link href="/" style={{ fontWeight: 700, fontSize: 20, letterSpacing: "-0.045em", color: "var(--px-ink)", textDecoration: "none", marginBottom: 40 }}>
-        Portex
-      </Link>
+      <MarcaPortex href="/" />
 
       <div style={{ width: "100%", maxWidth: 380, background: "white", border: "1px solid var(--px-line)", borderRadius: 16, padding: "36px 32px" }}>
 
@@ -201,9 +207,40 @@ export default function UpdatePasswordPage() {
             <h1 style={{ margin: "0 0 6px", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--px-ink)" }}>
               {heading}
             </h1>
-            <p style={{ margin: "0 0 28px", fontSize: 14, color: "var(--px-mid)", lineHeight: 1.5 }}>
+            <p style={{ margin: "0 0 20px", fontSize: 14, color: "var(--px-mid)", lineHeight: 1.5 }}>
               {subtext}
             </p>
+
+            {/* Tu correo y tu edificio, a la vista: no te estás registrando de
+                cero, la cuenta ya existe y ya está ligada al condominio. */}
+            {contexto?.email && (
+              <div
+                style={{
+                  marginBottom: 24, padding: "12px 14px", borderRadius: 9,
+                  background: "var(--px-paper)", border: "1px solid var(--px-line2)",
+                  display: "flex", flexDirection: "column", gap: 8,
+                }}
+              >
+                <div>
+                  <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--px-mid2)" }}>
+                    TU CUENTA
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 500, marginTop: 2, wordBreak: "break-all" }}>
+                    {contexto.email}
+                  </div>
+                </div>
+                {(contexto.buildingName || contexto.orgName) && (
+                  <div>
+                    <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--px-mid2)" }}>
+                      EDIFICIO
+                    </div>
+                    <div style={{ fontSize: 13.5, fontWeight: 500, marginTop: 2 }}>
+                      {contexto.buildingName ?? contexto.orgName}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {error && (
               <div style={{ background: "oklch(0.96 0.05 28)", border: "1px solid oklch(0.88 0.12 28)", borderRadius: 8, padding: "10px 14px", marginBottom: 20, fontSize: 13, color: "oklch(0.40 0.18 28)" }}>

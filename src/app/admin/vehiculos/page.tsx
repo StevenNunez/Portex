@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { redirect } from "next/navigation";
 import { getUserContext } from "@/lib/user-context";
 import { getActivityByType } from "@/lib/db";
@@ -26,13 +27,13 @@ export default async function VehiculosPage() {
 
   return (
     <>
-      <header style={{ padding: "22px 32px 18px", borderBottom: "1px solid var(--px-line)", flexShrink: 0, background: "white" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+      <header className="px-head">
+        <div className="px-head-fila">
           <div>
             <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)", letterSpacing: "0.08em" }}>
               VEHÍCULOS · {hoy} HOY · {rows.length} TOTAL
             </div>
-            <h1 style={{ margin: "4px 0 0", fontSize: 30, fontWeight: 600, letterSpacing: "-0.025em" }}>
+            <h1 style={{ margin: "4px 0 0", fontWeight: 600, letterSpacing: "-0.025em" }}>
               Accesos vehiculares
             </h1>
           </div>
@@ -41,15 +42,7 @@ export default async function VehiculosPage() {
       </header>
 
       <div style={{ flex: 1, overflow: "auto" }}>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "160px 110px 1.2fr 1fr 120px",
-          padding: "10px 32px",
-          fontFamily: "var(--font-jetbrains-mono)", fontSize: 10,
-          letterSpacing: "0.08em", color: "var(--px-mid)",
-          borderBottom: "1px solid var(--px-line)", background: "var(--px-paper)",
-          position: "sticky", top: 0, zIndex: 1, gap: 12, alignItems: "center",
-        }}>
+        <div className="px-tabla-head" style={{ "--cols": "160px 110px 1.2fr 1fr 120px", "--pad": "10px 32px" } as CSSProperties}>
           <span>FECHA Y HORA</span>
           <span>PATENTE</span>
           <span>CONDUCTOR / PROPIETARIO</span>
@@ -64,26 +57,19 @@ export default async function VehiculosPage() {
         ) : rows.map((r, i) => (
           <div
             key={r.id}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "160px 110px 1.2fr 1fr 120px",
-              padding: "11px 32px", gap: 12,
-              borderBottom: "1px solid var(--px-line2)",
-              fontSize: 13, alignItems: "center",
-              background: i % 2 ? "var(--px-paper)" : "white",
-            }}
+            className="px-tabla-fila" style={{ "--cols": "160px 110px 1.2fr 1fr 120px", "--pad": "11px 32px", borderBottom: "1px solid var(--px-line2)", background: i % 2 ? "var(--px-paper)" : "white" } as CSSProperties}
           >
-            <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5, color: "var(--px-ink2)" }}>
+            <span data-l="FECHA Y HORA" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5, color: "var(--px-ink2)" }}>
               {fmt(r.recorded_at)}
             </span>
-            <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontWeight: 600, fontSize: 12, letterSpacing: "0.05em" }}>
+            <span data-l="PATENTE" style={{ fontFamily: "var(--font-jetbrains-mono)", fontWeight: 600, fontSize: 12, letterSpacing: "0.05em" }}>
               {r.plate ?? "—"}
             </span>
-            <span style={{ fontWeight: 500 }}>{r.who}</span>
-            <span style={{ color: "var(--px-mid)", fontSize: 12.5 }}>
+            <span data-l="CONDUCTOR / PROPIETARIO" style={{ fontWeight: 500 }}>{r.who}</span>
+            <span data-l="UNIDAD / CONTEXTO" style={{ color: "var(--px-mid)", fontSize: 12.5 }}>
               {[r.unit, r.context].filter(Boolean).join(" · ") || "—"}
             </span>
-            <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5, color: "var(--px-mid)" }}>
+            <span data-l="REGISTRADO POR" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5, color: "var(--px-mid)" }}>
               {r.recorded_by ?? "—"}
             </span>
           </div>

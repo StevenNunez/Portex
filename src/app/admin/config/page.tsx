@@ -4,6 +4,9 @@ import { getStaff } from "@/lib/db";
 import InviteStaffForm from "./InviteStaffForm";
 import StaffCard from "@/components/admin/StaffCard";
 import { EditarEdificio, EditarMiCuenta } from "@/components/admin/EditarEdificio";
+import CodigoEdificio from "@/components/admin/CodigoEdificio";
+import { obtenerOCrearCodigo } from "@/lib/autoregistro";
+import { appUrl } from "@/lib/app-url";
 
 export const revalidate = 0;
 
@@ -23,14 +26,18 @@ export default async function ConfigPage() {
   if (!ctx) redirect("/login");
 
   const staff = ctx.buildingId ? await getStaff(ctx.buildingId) : [];
+  // El código del cartel: se crea la primera vez que alguien abre esta página.
+  const codigo = ctx.buildingId && ctx.role === "admin"
+    ? await obtenerOCrearCodigo(ctx.buildingId)
+    : null;
 
   return (
     <>
-      <header style={{ padding: "22px 32px 18px", borderBottom: "1px solid var(--px-line)", flexShrink: 0, background: "white" }}>
+      <header className="px-head">
         <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)", letterSpacing: "0.08em" }}>
           AJUSTES
         </div>
-        <h1 style={{ margin: "4px 0 0", fontSize: 30, fontWeight: 600, letterSpacing: "-0.025em" }}>
+        <h1 style={{ margin: "4px 0 0", fontWeight: 600, letterSpacing: "-0.025em" }}>
           Configuración
         </h1>
       </header>
@@ -45,6 +52,17 @@ export default async function ConfigPage() {
             organizacion={ctx.orgName ?? ""}
           />
         </Section>
+
+        {/* Acceso de los residentes */}
+        {ctx.role === "admin" && (
+          <Section title="Acceso de los residentes">
+            <CodigoEdificio
+              codigoInicial={codigo}
+              buildingName={ctx.buildingName ?? "tu edificio"}
+              appUrl={appUrl()}
+            />
+          </Section>
+        )}
 
         {/* Mi cuenta */}
         <Section title="Mi cuenta">

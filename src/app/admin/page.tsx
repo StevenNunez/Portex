@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { redirect } from "next/navigation";
 import { getDashboardStats, getHourlyActivity, getTodayShifts, getRecentActivity } from "@/lib/db";
 import { getUserContext } from "@/lib/user-context";
@@ -101,17 +102,12 @@ export default async function AdminPage() {
   return (
     <>
       {/* Header */}
-      <header style={{
-        padding: "22px 32px 18px",
-        borderBottom: "1px solid var(--px-line)",
-        display: "flex", alignItems: "flex-end", justifyContent: "space-between",
-        flexShrink: 0, background: "white",
-      }}>
+      <header className="px-head px-head-fila">
         <div>
           <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)", letterSpacing: "0.08em" }}>
             {todayLabel.toUpperCase()}
           </div>
-          <h1 style={{ margin: "4px 0 0", fontSize: 30, fontWeight: 600, letterSpacing: "-0.025em" }}>
+          <h1 style={{ margin: "4px 0 0", fontWeight: 600, letterSpacing: "-0.025em" }}>
             Panel de control
           </h1>
         </div>
@@ -121,10 +117,17 @@ export default async function AdminPage() {
         </div>
       </header>
 
-      <div style={{ flex: 1, padding: "24px 32px", display: "flex", flexDirection: "column", gap: 20, overflow: "auto" }}>
+      <div style={{ flex: 1, padding: "24px clamp(16px, 4vw, 32px)", display: "flex", flexDirection: "column", gap: 20, overflow: "auto" }}>
 
         {/* KPI row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
+        <div
+          className="px-grid"
+          style={{
+            "--cols": "repeat(5, 1fr)",
+            "--cols-tablet": "repeat(3, 1fr)",
+            "--cols-movil": "repeat(2, 1fr)",
+          } as CSSProperties}
+        >
           {kpis.map((k) => (
             <a
               key={k.label}
@@ -149,7 +152,7 @@ export default async function AdminPage() {
         </div>
 
         {/* Chart + Shifts */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16, minHeight: 260 }}>
+        <div className="px-grid" style={{ "--cols": "1.6fr 1fr", "--gap": "16px", minHeight: 260 } as CSSProperties}>
 
           {/* Hourly bar chart */}
           <div style={{
@@ -293,11 +296,7 @@ export default async function AdminPage() {
             </div>
           ) : (
             activity.map((a: ActivityRow, i: number) => (
-              <div key={a.id} style={{
-                display: "grid",
-                gridTemplateColumns: "18px 44px 80px 1fr auto",
-                alignItems: "center", gap: 12,
-                padding: "9px 0",
+              <div key={a.id} className="px-actividad" style={{
                 borderTop: i ? "1px solid var(--px-line2)" : "none",
               }}>
                 <span style={{ color: dirColor(a.type), display: "flex" }}>

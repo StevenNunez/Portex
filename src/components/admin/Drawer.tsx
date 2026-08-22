@@ -63,12 +63,15 @@ export default function Drawer({ open, onClose, title, subtitle, children, width
 
       {/* Panel */}
       <div
+        className="px-drawer"
         style={{
           position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 50,
           width,
           background: "white",
           boxShadow: "-6px 0 40px rgba(0,0,0,0.12)",
-          transform: open ? "translateX(0)" : `translateX(${width}px)`,
+          // En porcentaje y no en píxeles: en el teléfono el panel ocupa todo
+          // el ancho y `width` ya no es la medida real.
+          transform: open ? "translateX(0)" : "translateX(100%)",
           transition: "transform 0.26s cubic-bezier(0.4,0,0.2,1)",
           display: "flex", flexDirection: "column",
         }}
@@ -105,7 +108,7 @@ export default function Drawer({ open, onClose, title, subtitle, children, width
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflow: "auto", padding: "24px" }}>
+        <div style={{ flex: 1, overflow: "auto", padding: "24px", paddingBottom: "calc(24px + env(safe-area-inset-bottom, 0px))" }}>
           {children}
         </div>
       </div>

@@ -21,20 +21,22 @@ interface ParsedRow {
   tipo: Tipo;
   rut: string;
   contact: string;
+  /** El correo con el que se le va a dar acceso al portal. */
+  email: string;
   status: Status;
   _err?: string;
 }
 
 // ── Template ──────────────────────────────────────────────────────
 
-const HEADERS = ["Torre", "N° Depto *", "Nombre Titular *", "Tipo", "RUT", "Contacto", "Estado"];
+const HEADERS = ["Torre", "N° Depto *", "Nombre Titular *", "Tipo", "RUT", "Contacto", "Correo", "Estado"];
 const EXAMPLES = [
-  ["A",       "101", "Juan Pérez",     "Propietario",  "12.345.678-9", "+56 9 1234 5678", "activo"],
-  ["A",       "102", "María González", "Arrendatario", "",             "+56 9 8765 4321", "activo"],
-  ["Norte",   "201", "Carlos López",   "Propietario",  "9.876.543-2",  "",                "activo"],
-  ["Sur",     "301", "Ana Soto",       "Arrendatario", "8.765.432-1",  "+56 9 5555 0000", "pendiente"],
-  ["2",       "405", "Pedro Rojas",    "Propietario",  "",             "+56 9 1111 2222", "activo"],
-  ["",        "502", "Laura Vera",     "Propietario",  "7.654.321-0",  "",                "activo"],
+  ["A",       "101", "Juan Pérez",     "Propietario",  "12.345.678-9", "+56 9 1234 5678", "juan.perez@mail.com",   "activo"],
+  ["A",       "102", "María González", "Arrendatario", "",             "+56 9 8765 4321", "m.gonzalez@mail.com",   "activo"],
+  ["Norte",   "201", "Carlos López",   "Propietario",  "9.876.543-2",  "",                "",                      "activo"],
+  ["Sur",     "301", "Ana Soto",       "Arrendatario", "8.765.432-1",  "+56 9 5555 0000", "ana.soto@mail.com",     "pendiente"],
+  ["2",       "405", "Pedro Rojas",    "Propietario",  "",             "+56 9 1111 2222", "",                      "activo"],
+  ["",        "502", "Laura Vera",     "Propietario",  "7.654.321-0",  "",                "laura.vera@mail.com",   "activo"],
 ];
 
 /** Lo que antes vivía en una segunda hoja del Excel que nadie abría. */
@@ -44,7 +46,8 @@ const INSTRUCCIONES: { campo: string; obligatorio: boolean; desc: string; ejempl
   { campo: "Nombre Titular", obligatorio: true,  desc: "Nombre completo del residente principal.",                          ejemplos: "Juan Pérez López" },
   { campo: "Tipo",           obligatorio: false, desc: "Si el titular es dueño o arrienda.",                                ejemplos: "Propietario · Arrendatario" },
   { campo: "RUT",            obligatorio: false, desc: "RUT chileno, con o sin puntos.",                                    ejemplos: "12.345.678-9" },
-  { campo: "Contacto",       obligatorio: false, desc: "Teléfono o correo.",                                                ejemplos: "+56 9 1234 5678 · juan@mail.com" },
+  { campo: "Contacto",       obligatorio: false, desc: "Teléfono para la portería.",                                       ejemplos: "+56 9 1234 5678" },
+  { campo: "Correo",         obligatorio: false, desc: "Con este correo se le da acceso a la app. Los que lo traigan quedan listos para invitar de una sola vez.", ejemplos: "juan@mail.com" },
   { campo: "Estado",         obligatorio: false, desc: "Por defecto queda activo.",                                         ejemplos: "activo · pendiente · inactivo" },
 ];
 
@@ -106,8 +109,25 @@ async function parseFile(file: File): Promise<ParsedRow[]> {
 
   const dataRows = rows.slice(1).filter((r) => r.some((c) => c));
 
+  // Las columnas se ubican por su nombre y no por su posición: así sigue
+  // funcionando un padrón viejo —sin la columna Correo— y también uno donde
+  // alguien movió las columnas de lugar en Excel, que pasa siempre.
+  const col = mapaDeColumnas(rows[0] ?? []);
+
   return dataRows.map((row) => {
-    const [torre = "", depto = "", name = "", tipoRaw = "", rut = "", contact = "", statusRaw = ""] = row;
+    const dame = (clave: keyof typeof col, porDefecto: number) => {
+      const i = col[clave];
+      return (i != null ? row[i] : row[porDefecto]) ?? "";
+    };
+
+    const torre     = dame("torre", 0);
+    const depto     = dame("depto", 1);
+    const name      = dame("nombre", 2);
+    const tipoRaw   = dame("tipo", 3);
+    const rut       = dame("rut", 4);
+    const contact   = dame("contacto", 5);
+    const emailRaw  = col.correo != null ? (row[col.correo] ?? "") : "";
+    const statusRaw = dame("estado", 6);
 
     const validTipos: Tipo[] = ["Propietario", "Arrendatario"];
     const tipoNorm = tipoRaw
@@ -120,14 +140,44 @@ async function parseFile(file: File): Promise<ParsedRow[]> {
       ? (statusRaw.toLowerCase() as Status)
       : "activo";
 
+    // Si nadie llenó la columna Correo pero el contacto es un correo, sirve
+    // igual: es el padrón que ya tenían y no hay por qué pedirlo dos veces.
+    const email = emailRaw.trim() || (contact.includes("@") ? contact.trim() : "");
+
     const unitCode = buildUnitCode(torre, depto);
-    const p: ParsedRow = { torre, depto, unitCode, name, tipo, rut, contact, status };
+    const p: ParsedRow = { torre, depto, unitCode, name, tipo, rut, contact, email, status };
 
     if (!depto) p._err = "Falta N° de depto";
     else if (!name) p._err = "Falta nombre titular";
+    else if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) p._err = "Correo mal escrito";
 
     return p;
   });
+}
+
+/** Dónde quedó cada columna, según lo que diga la fila de encabezados. */
+function mapaDeColumnas(encabezados: string[]) {
+  const normalizar = (t: string) =>
+    t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z]/g, "");
+
+  const buscar = (...alternativas: string[]) => {
+    const i = encabezados.findIndex((h) => {
+      const n = normalizar(h);
+      return alternativas.some((a) => n.startsWith(a));
+    });
+    return i >= 0 ? i : undefined;
+  };
+
+  return {
+    torre:    buscar("torre", "bloque", "sector"),
+    depto:    buscar("ndepto", "depto", "departamento", "unidad"),
+    nombre:   buscar("nombretitular", "nombre", "titular"),
+    tipo:     buscar("tipo"),
+    rut:      buscar("rut"),
+    contacto: buscar("contacto", "telefono", "fono"),
+    correo:   buscar("correo", "email", "mail"),
+    estado:   buscar("estado"),
+  };
 }
 
 // ── Styles ────────────────────────────────────────────────────────
@@ -157,7 +207,7 @@ export default function ImportResidentesButton() {
   const [parseError, setParseError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ inserted: number } | null>(null);
+  const [result, setResult] = useState<{ inserted: number; conCorreo: number } | null>(null);
   const [dragging, setDragging] = useState(false);
 
   function close() {
@@ -192,11 +242,12 @@ export default function ImportResidentesButton() {
         tipo: r.tipo || undefined,
         rut: r.rut || undefined,
         contact: r.contact || undefined,
+        email: r.email || undefined,
         status: r.status,
       }))
     );
     if (res.ok) {
-      setResult({ inserted: res.inserted });
+      setResult({ inserted: res.inserted, conCorreo: res.conCorreo });
       router.refresh();
     } else {
       setActionError(res.error ?? "Error al importar");
@@ -241,8 +292,16 @@ export default function ImportResidentesButton() {
             <div style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 6 }}>
               {result.inserted} residentes importados
             </div>
-            <div style={{ fontSize: 13, color: "var(--px-mid)", marginBottom: 28 }}>
+            <div style={{ fontSize: 13, color: "var(--px-mid)", marginBottom: 28, lineHeight: 1.6 }}>
               El padrón ha sido actualizado correctamente.
+              {result.conCorreo > 0 && (
+                <>
+                  <br />
+                  <strong style={{ color: "var(--px-ink)" }}>{result.conCorreo}</strong> traen correo:
+                  puedes darles acceso a todos con el botón{" "}
+                  <strong style={{ color: "var(--px-ink)", fontWeight: 500 }}>Dar acceso</strong>.
+                </>
+              )}
             </div>
             <button onClick={close} style={{ ...BTN_PRIMARY }}>Cerrar</button>
           </div>
@@ -257,7 +316,7 @@ export default function ImportResidentesButton() {
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 3 }}>1. Descarga la plantilla</div>
                 <div style={{ fontSize: 12, color: "var(--px-mid)", lineHeight: 1.6 }}>
-                  Torre · N° Depto · Nombre Titular · Tipo · RUT · Contacto · Estado
+                  Torre · N° Depto · Nombre Titular · Tipo · RUT · Contacto · Correo · Estado
                 </div>
                 <div style={{ fontSize: 11, color: "var(--px-mid)", marginTop: 2 }}>
                   Torre acepta letras, números o nombres — A, 1, Norte, Sur, Poniente…

@@ -13,9 +13,9 @@ export default function DashboardSearch() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} style={{ flex: 1, minWidth: 0 }}>
       <div style={{
-        display: "flex", alignItems: "center", gap: 8,
+        display: "flex", alignItems: "center", gap: 8, minWidth: 0,
         background: "white", border: "1px solid var(--px-line)", borderRadius: 8,
         padding: "8px 12px", fontSize: 12,
         fontFamily: "var(--font-jetbrains-mono)", color: "var(--px-mid)",
@@ -30,7 +30,7 @@ export default function DashboardSearch() {
           placeholder="Buscar residente, depto…"
           style={{
             border: "none", outline: "none", background: "transparent",
-            fontSize: 12, color: "var(--px-ink)", width: 190,
+            fontSize: 12, color: "var(--px-ink)", width: "100%", minWidth: 0,
             fontFamily: "var(--font-jetbrains-mono)",
           }}
         />

@@ -15,6 +15,8 @@ export type NoticeSource = "admin" | "porteria";
 export type Tenancy = "propietario" | "arrendatario" | "otro";
 export type PetSpecies = "perro" | "gato" | "otro";
 
+export type SignupStatus = "pendiente" | "aprobada" | "rechazada";
+
 export interface Database {
   public: {
     Tables: {
@@ -31,15 +33,15 @@ export interface Database {
         Relationships: [];
       };
       buildings: {
-        Row: { id: string; name: string; address: string | null; units_total: number; organization_id: string | null; created_at: string };
-        Insert: { id?: string; name: string; address?: string | null; units_total?: number; organization_id?: string | null; created_at?: string };
-        Update: { id?: string; name?: string; address?: string | null; units_total?: number; organization_id?: string | null; created_at?: string };
+        Row: { id: string; name: string; address: string | null; units_total: number; organization_id: string | null; join_code: string | null; join_code_updated_at: string | null; created_at: string };
+        Insert: { id?: string; name: string; address?: string | null; units_total?: number; organization_id?: string | null; join_code?: string | null; join_code_updated_at?: string | null; created_at?: string };
+        Update: { id?: string; name?: string; address?: string | null; units_total?: number; organization_id?: string | null; join_code?: string | null; join_code_updated_at?: string | null; created_at?: string };
         Relationships: [];
       };
       residents: {
-        Row: { id: string; building_id: string; unit_code: string; name: string; household: string | null; tags: string[]; rut: string | null; contact: string | null; status: ResidentStatus; tenancy: Tenancy | null; profile_updated_at: string | null; created_at: string };
-        Insert: { id?: string; building_id: string; unit_code: string; name: string; household?: string | null; tags?: string[]; rut?: string | null; contact?: string | null; status?: ResidentStatus; tenancy?: Tenancy | null; profile_updated_at?: string | null; created_at?: string };
-        Update: { id?: string; building_id?: string; unit_code?: string; name?: string; household?: string | null; tags?: string[]; rut?: string | null; contact?: string | null; status?: ResidentStatus; tenancy?: Tenancy | null; profile_updated_at?: string | null; created_at?: string };
+        Row: { id: string; building_id: string; unit_code: string; name: string; household: string | null; tags: string[]; rut: string | null; contact: string | null; status: ResidentStatus; tenancy: Tenancy | null; profile_updated_at: string | null; invite_email: string | null; invited_at: string | null; created_at: string };
+        Insert: { id?: string; building_id: string; unit_code: string; name: string; household?: string | null; tags?: string[]; rut?: string | null; contact?: string | null; status?: ResidentStatus; tenancy?: Tenancy | null; profile_updated_at?: string | null; invite_email?: string | null; invited_at?: string | null; created_at?: string };
+        Update: { id?: string; building_id?: string; unit_code?: string; name?: string; household?: string | null; tags?: string[]; rut?: string | null; contact?: string | null; status?: ResidentStatus; tenancy?: Tenancy | null; profile_updated_at?: string | null; invite_email?: string | null; invited_at?: string | null; created_at?: string };
         Relationships: [];
       };
       frequent_visitors: {
@@ -52,6 +54,12 @@ export interface Database {
         Row: { id: string; building_id: string; type: AccessType; who: string; context: string | null; unit: string | null; plate: string | null; recorded_by: string | null; recorded_at: string; request_id: string | null; authorized_by: string | null; rut: string | null };
         Insert: { id?: string; building_id: string; type: AccessType; who: string; context?: string | null; unit?: string | null; plate?: string | null; recorded_by?: string | null; recorded_at?: string; request_id?: string | null; authorized_by?: string | null; rut?: string | null };
         Update: { id?: string; building_id?: string; type?: AccessType; who?: string; context?: string | null; unit?: string | null; plate?: string | null; recorded_by?: string | null; recorded_at?: string; request_id?: string | null; authorized_by?: string | null; rut?: string | null };
+        Relationships: [];
+      };
+      resident_signups: {
+        Row: { id: string; building_id: string; unit_code: string; name: string; email: string; phone: string | null; status: SignupStatus; resident_id: string | null; reviewed_by: string | null; reviewed_at: string | null; note: string | null; created_at: string };
+        Insert: { id?: string; building_id: string; unit_code: string; name: string; email: string; phone?: string | null; status?: SignupStatus; resident_id?: string | null; reviewed_by?: string | null; reviewed_at?: string | null; note?: string | null; created_at?: string };
+        Update: { id?: string; building_id?: string; unit_code?: string; name?: string; email?: string; phone?: string | null; status?: SignupStatus; resident_id?: string | null; reviewed_by?: string | null; reviewed_at?: string | null; note?: string | null; created_at?: string };
         Relationships: [];
       };
       resident_members: {

@@ -1,5 +1,7 @@
 "use client";
 
+import type { CSSProperties } from "react";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { registerPassEntry } from "@/app/citofono-actions";
 import { entregarEncomienda, lookupScan, type ScanResult } from "@/app/encomiendas-actions";
@@ -33,7 +35,7 @@ interface Props {
 const DRAWER: React.CSSProperties = {
   position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
   background: "var(--px-bone)", borderRadius: "24px 24px 0 0",
-  padding: "0 28px 36px", maxHeight: "88dvh",
+  padding: "0 clamp(16px, 5vw, 28px) calc(36px + env(safe-area-inset-bottom, 0px))", maxHeight: "88dvh",
   display: "flex", flexDirection: "column",
 };
 
@@ -418,7 +420,7 @@ export default function QrScanDrawer({ open, onClose, onRegistered }: Props) {
 
           /* ── Escaneo ───────────────────────────────────────────── */
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 24, alignItems: "start" }}>
+            <div className="px-grid" style={{ "--cols": "1fr 320px", "--gap": "24px", alignItems: "start" } as CSSProperties}>
               <div>
                 <div style={{ ...MONO, marginBottom: 8 }}>CÁMARA</div>
                 <div

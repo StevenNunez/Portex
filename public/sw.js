@@ -1,6 +1,7 @@
-// Portex · service worker del citófono.
-// Su único trabajo: mostrar la alerta cuando alguien está en portería,
-// aunque el residente tenga el teléfono bloqueado.
+// Portex · service worker de los avisos.
+// Muestra la alerta aunque la pantalla esté bloqueada: al residente cuando
+// alguien lo espera en portería, y al conserje cuando un vecino pide acceso
+// a la app desde el cartel del edificio.
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
@@ -30,7 +31,17 @@ self.addEventListener("push", (event) => {
     data: { url: data.url || "/residente" },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(title, options),
+      // Si la pantalla está abierta —la portería es un kiosco que no se
+      // cierra nunca—, además de la alerta se le avisa a la página para que
+      // traiga los datos nuevos sin que nadie tenga que recargar.
+      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+        for (const client of list) client.postMessage({ tipo: "portex:push", url: options.data.url });
+      }),
+    ])
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
@@ -39,10 +50,12 @@ self.addEventListener("notificationclick", (event) => {
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
-      // Si ya tiene Portex abierto, lo trae al frente en vez de abrir otra
+      // Cualquier ventana de Portex sirve para traerla al frente. Antes solo
+      // se reconocían las del residente, así que al conserje le abría una
+      // pestaña nueva encima de la portería que ya tenía abierta.
       for (const client of list) {
-        if (client.url.includes("/residente") && "focus" in client) {
-          client.navigate(url);
+        if ("focus" in client) {
+          if ("navigate" in client) client.navigate(url);
           return client.focus();
         }
       }

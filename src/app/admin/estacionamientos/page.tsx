@@ -34,15 +34,15 @@ export default async function EstacionamientosPage() {
 
   return (
     <>
-      <header style={{ padding: "22px 32px 18px", borderBottom: "1px solid var(--px-line)", flexShrink: 0, background: "white" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+      <header className="px-head">
+        <div className="px-head-fila">
           <div>
             <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)", letterSpacing: "0.08em" }}>
               ESTACIONAMIENTOS · {libres} LIBRES DE {activos.length}
               {deVisita.length > 0 && ` · ${visitaLibres} DE VISITA`}
               {prestados > 0 && ` · ${prestados} PRESTADO${prestados === 1 ? "" : "S"}`}
             </div>
-            <h1 style={{ margin: "4px 0 0", fontSize: 30, fontWeight: 600, letterSpacing: "-0.025em" }}>
+            <h1 style={{ margin: "4px 0 0", fontWeight: 600, letterSpacing: "-0.025em" }}>
               Estacionamientos
             </h1>
           </div>

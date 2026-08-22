@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import type { ResidentRow } from "@/lib/db";
 import Drawer, { FIELD, LABEL, BTN_PRIMARY } from "@/components/admin/Drawer";
 import { updateResident } from "@/app/actions";
 import { inviteResidentToPortal } from "@/app/citofono-actions";
+import { correoDeResidente } from "@/lib/residentes";
 
 type Status = "activo" | "pendiente" | "inactivo";
 type Tipo   = "Propietario" | "Arrendatario" | "";
@@ -39,6 +41,37 @@ const TIPO_COLOR: Record<string, string> = {
 const TIPO_BG: Record<string, string> = {
   Propietario:  "oklch(0.94 0.04 260)",
   Arrendatario: "oklch(0.95 0.04 320)",
+};
+
+/**
+ * En qué punto está el residente para usar la app.
+ *
+ * "invitado" no es lo mismo que "con cuenta": el correo se manda, pero
+ * mientras la persona no cree su contraseña no puede autorizar a nadie, y el
+ * administrador necesita ver esa diferencia para saber a quién insistirle.
+ */
+type Acceso = "con-cuenta" | "invitado" | "sin-acceso";
+
+function accesoDe(r: ResidentRow): Acceso {
+  if (r.tieneCuenta) return "con-cuenta";
+  if (r.invited_at) return "invitado";
+  return "sin-acceso";
+}
+
+const ACCESO_TEXTO: Record<Acceso, string> = {
+  "con-cuenta": "CON CUENTA",
+  invitado:     "INVITADO",
+  "sin-acceso": "SIN ACCESO",
+};
+const ACCESO_COLOR: Record<Acceso, string> = {
+  "con-cuenta": "oklch(0.45 0.15 145)",
+  invitado:     "oklch(0.5 0.16 60)",
+  "sin-acceso": "var(--px-mid)",
+};
+const ACCESO_BG: Record<Acceso, string> = {
+  "con-cuenta": "oklch(0.95 0.05 145)",
+  invitado:     "oklch(0.96 0.06 80)",
+  "sin-acceso": "var(--px-line2)",
 };
 
 // ── Filter pill (select styled) ────────────────────────────────────
@@ -142,8 +175,7 @@ export default function ResidentesClient({
   // ── Invitación al portal del residente ──────────────────────────
   function openInvite(row: ResidentRow) {
     setInviting(row);
-    // El contacto suele ser teléfono; solo sirve de borrador si es correo.
-    setInviteEmail(row.contact?.includes("@") ? row.contact : "");
+    setInviteEmail(correoDeResidente(row));
     setInviteError(null);
     setInviteDone(false);
   }
@@ -370,20 +402,13 @@ export default function ResidentesClient({
       {/* Table */}
       <div style={{ flex: 1, overflow: "auto" }}>
         {/* Table header */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: `100px 1.5fr 100px 150px 110px 80px${isAdmin ? " 36px" : ""}`,
-          padding: "9px 32px",
-          fontFamily: "var(--font-jetbrains-mono)", fontSize: 10,
-          letterSpacing: "0.08em", color: "var(--px-mid)",
-          borderBottom: "1px solid var(--px-line)", background: "var(--px-paper)",
-          alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 1,
-        }}>
+        <div className="px-tabla-head" style={{ "--cols": `96px 1.5fr 96px 140px 100px 100px 78px${isAdmin ? " 60px" : ""}`, "--pad": "9px 32px" } as CSSProperties}>
           <span>UNIDAD</span>
           <span>TITULAR</span>
           <span>TIPO</span>
           <span>RUT · CONTACTO</span>
           <span>GRUPO</span>
+          <span>ACCESO</span>
           <span>ESTADO</span>
           {isAdmin && <span />}
         </div>
@@ -411,24 +436,17 @@ export default function ResidentesClient({
             return (
               <div
                 key={r.id}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: `100px 1.5fr 100px 150px 110px 80px${isAdmin ? " 36px" : ""}`,
-                  padding: "11px 32px",
-                  borderBottom: "1px solid var(--px-line2)",
-                  fontSize: 13, alignItems: "center", gap: 12,
-                  background: i % 2 ? "var(--px-paper)" : "white",
-                }}
+                className="px-tabla-fila" style={{ "--cols": `96px 1.5fr 96px 140px 100px 100px 78px${isAdmin ? " 60px" : ""}`, "--pad": "11px 32px", borderBottom: "1px solid var(--px-line2)", background: i % 2 ? "var(--px-paper)" : "white" } as CSSProperties}
               >
-                <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontWeight: 700, fontSize: 12 }}>
+                <span data-l="UNIDAD" style={{ fontFamily: "var(--font-jetbrains-mono)", fontWeight: 700, fontSize: 12 }}>
                   {r.unit_code}
                 </span>
 
-                <span>
+                <span data-l="TITULAR">
                   <div style={{ fontWeight: 500 }}>{r.name}</div>
                 </span>
 
-                <span>
+                <span data-l="TIPO">
                   {tipo ? (
                     <span style={{
                       fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5,
@@ -451,12 +469,12 @@ export default function ResidentesClient({
                   )}
                 </span>
 
-                <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, lineHeight: 1.6 }}>
+                <div data-l="RUT · CONTACTO" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, lineHeight: 1.6 }}>
                   <div style={{ color: "var(--px-ink2)" }}>{r.rut ?? "—"}</div>
                   {r.contact && <div style={{ color: "var(--px-mid)" }}>{r.contact}</div>}
                 </div>
 
-                <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)", lineHeight: 1.6 }}>
+                <span data-l="GRUPO" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)", lineHeight: 1.6 }}>
                   {(() => {
                     const perfil = perfiles[r.id];
                     const personas = perfil?.integrantes ?? 0;
@@ -484,7 +502,32 @@ export default function ResidentesClient({
                   })()}
                 </span>
 
-                <span>
+                <span data-l="ACCESO">
+                  {(() => {
+                    const acc = accesoDe(r);
+                    return (
+                      <span
+                        title={
+                          acc === "con-cuenta"
+                            ? `Ya entró con ${r.invite_email ?? "su correo"} y puede autorizar visitas`
+                            : acc === "invitado"
+                              ? `Invitado a ${r.invite_email}, todavía no crea su contraseña`
+                              : "Nunca se le mandó invitación al portal"
+                        }
+                        style={{
+                          fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5,
+                          letterSpacing: "0.05em", padding: "3px 7px", borderRadius: 4,
+                          color: ACCESO_COLOR[acc], background: ACCESO_BG[acc],
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {ACCESO_TEXTO[acc]}
+                      </span>
+                    );
+                  })()}
+                </span>
+
+                <span data-l="ESTADO">
                   <span style={{
                     fontFamily: "var(--font-jetbrains-mono)", fontSize: 10,
                     letterSpacing: "0.06em", padding: "3px 8px", borderRadius: 4,

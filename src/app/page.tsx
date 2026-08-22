@@ -56,7 +56,7 @@ function Nav() {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 40px",
+        padding: "0 clamp(16px, 4vw, 40px)",
         height: 60,
         borderBottom: `1px solid ${BORDER}`,
         background: "rgba(8,8,8,0.88)",
@@ -70,7 +70,7 @@ function Nav() {
         Portex
       </span>
 
-      <div style={{ display: "flex", gap: 28, flex: 1, justifyContent: "center" }}>
+      <div className="px-nav-links" style={{ display: "flex", gap: 28, flex: 1, justifyContent: "center" }}>
         {[
           ["#modulos", "Módulos"],
           ["#como-funciona", "Cómo funciona"],
@@ -107,7 +107,7 @@ function Nav() {
 // ── Hero ──────────────────────────────────────────────────────────────────────
 function Hero() {
   return (
-    <section style={{ maxWidth: 900, margin: "100px auto", padding: "88px 40px 64px", textAlign: "center" }}>
+    <section style={{ maxWidth: 900, margin: "clamp(24px, 8vw, 100px) auto", padding: "clamp(40px, 10vw, 88px) clamp(18px, 5vw, 40px) 64px", textAlign: "center" }}>
       <div
         style={{
           ...MONO,
@@ -253,7 +253,7 @@ function MockupConserje() {
     { label: "Proveedor", hint: "Mantención, obra" },
   ];
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto", padding: "0 40px 80px" }}>
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: "0 clamp(18px, 5vw, 40px) 80px" }}>
       <div
         style={{
           border: `1px solid rgba(255,255,255,0.12)`,
@@ -284,7 +284,7 @@ function MockupConserje() {
 
         {/* Tiles: lo que el conserje ve al llegar al turno */}
         <div style={{ padding: "20px", borderBottom: `1px solid ${BORDER}` }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+          <div className="px-grid" style={{ "--cols": "repeat(3, 1fr)", "--gap": "10px", "--cols-movil": "1fr" } as CSSProperties}>
             {tiles.map((t) => (
               <div
                 key={t.label}
@@ -396,7 +396,7 @@ function Problema() {
     },
   ];
   return (
-    <section style={{ maxWidth: 1040, margin: "0 auto", padding: "16px 40px 80px" }}>
+    <section style={{ maxWidth: 1040, margin: "0 auto", padding: "16px clamp(18px, 5vw, 40px) 80px" }}>
       <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 64 }}>
         <div style={LABEL()}>El problema</div>
         <h2 style={{ ...H2, maxWidth: 520 }}>
@@ -463,7 +463,7 @@ function ComoFunciona() {
     },
   ];
   return (
-    <section id="como-funciona" style={{ maxWidth: 1040, margin: "0 auto", padding: "0 40px 80px" }}>
+    <section id="como-funciona" style={{ maxWidth: 1040, margin: "0 auto", padding: "0 clamp(18px, 5vw, 40px) 80px" }}>
       <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 64 }}>
         <div style={LABEL()}>Cómo funciona</div>
         <h2 style={{ ...H2, maxWidth: 600 }}>
@@ -478,13 +478,13 @@ function ComoFunciona() {
           {surfaces.map((s) => (
             <div
               key={s.tag}
+              className="px-grid"
               style={{
                 ...CARD,
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 32,
-                padding: "32px 36px",
-              }}
+                "--cols": "1fr 1fr",
+                "--gap": "32px",
+                padding: "clamp(22px, 5vw, 32px) clamp(20px, 5vw, 36px)",
+              } as CSSProperties}
             >
               <div>
                 <div style={LABEL()}>{s.tag}</div>
@@ -529,7 +529,7 @@ function Modulos() {
     { eta: "EN EL PLAN", title: "Aseo y mantención", desc: "Pauta semanal, checklists, evidencia." },
   ];
   return (
-    <section id="modulos" style={{ maxWidth: 1040, margin: "0 auto", padding: "0 40px 80px" }}>
+    <section id="modulos" style={{ maxWidth: 1040, margin: "0 auto", padding: "0 clamp(18px, 5vw, 40px) 80px" }}>
       <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 64 }}>
         <div style={LABEL()}>Un sistema que crece contigo</div>
         <h2 style={{ ...H2 }}>
@@ -608,7 +608,7 @@ function Garantias() {
     },
   ];
   return (
-    <section style={{ maxWidth: 1040, margin: "0 auto", padding: "0 40px 80px" }}>
+    <section style={{ maxWidth: 1040, margin: "0 auto", padding: "0 clamp(18px, 5vw, 40px) 80px" }}>
       <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 64 }}>
         <div style={LABEL("#4ade80")}>Cómo trabajamos</div>
         <h2 style={{ ...H2, maxWidth: 640 }}>
@@ -688,7 +688,7 @@ function Precios() {
     },
   ];
   return (
-    <section id="precios" style={{ maxWidth: 1040, margin: "0 auto", padding: "0 40px 80px" }}>
+    <section id="precios" style={{ maxWidth: 1040, margin: "0 auto", padding: "0 clamp(18px, 5vw, 40px) 80px" }}>
       <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 64 }}>
         <div style={LABEL()}>Planes</div>
         <h2 style={{ ...H2 }}>
@@ -833,7 +833,7 @@ function FAQ() {
     },
   ];
   return (
-    <section style={{ maxWidth: 720, margin: "0 auto", padding: "0 40px 80px" }}>
+    <section style={{ maxWidth: 720, margin: "0 auto", padding: "0 clamp(18px, 5vw, 40px) 80px" }}>
       <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 64 }}>
         <div style={LABEL()}>Preguntas frecuentes</div>
         <h2 style={{ ...H2, marginBottom: 40 }}>¿Quedan dudas?</h2>
@@ -906,7 +906,7 @@ function Accesos() {
   ];
 
   return (
-    <section style={{ maxWidth: 1040, margin: "0 auto", padding: "0 40px 80px" }}>
+    <section style={{ maxWidth: 1040, margin: "0 auto", padding: "0 clamp(18px, 5vw, 40px) 80px" }}>
       <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 64 }}>
         <div style={LABEL()}>Un solo acceso</div>
         <h2 style={H2}>
@@ -1056,18 +1056,20 @@ function Footer() {
     <footer
       style={{
         borderTop: `1px solid ${BORDER}`,
-        padding: "56px 40px 40px",
+        padding: "56px clamp(18px, 5vw, 40px) 40px",
       }}
     >
       <div style={{ maxWidth: 1040, margin: "0 auto" }}>
         {/* Top row */}
         <div
+          className="px-grid"
           style={{
-            display: "grid",
-            gridTemplateColumns: "200px repeat(4, 1fr)",
-            gap: 24,
+            "--cols": "200px repeat(4, 1fr)",
+            "--cols-tablet": "repeat(3, 1fr)",
+            "--cols-movil": "repeat(2, 1fr)",
+            "--gap": "24px",
             marginBottom: 56,
-          }}
+          } as CSSProperties}
         >
           {/* Brand */}
           <div>

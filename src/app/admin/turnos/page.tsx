@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { redirect } from "next/navigation";
 import { getUserContext } from "@/lib/user-context";
 import { getAllShifts, getStaff } from "@/lib/db";
@@ -56,13 +57,13 @@ export default async function TurnosPage() {
 
   return (
     <>
-      <header style={{ padding: "22px 32px 18px", borderBottom: "1px solid var(--px-line)", flexShrink: 0, background: "white" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+      <header className="px-head">
+        <div className="px-head-fila">
           <div>
             <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)", letterSpacing: "0.08em" }}>
               TURNOS · {activeToday} ACTIVOS · {totalToday} HOY · {staff.length} PERSONAL
             </div>
-            <h1 style={{ margin: "4px 0 0", fontSize: 30, fontWeight: 600, letterSpacing: "-0.025em" }}>
+            <h1 style={{ margin: "4px 0 0", fontWeight: 600, letterSpacing: "-0.025em" }}>
               Turnos y personal
             </h1>
           </div>
@@ -105,7 +106,7 @@ export default async function TurnosPage() {
           ) : (
             <>
               {/* Table header */}
-              <div style={{ display: "grid", gridTemplateColumns: "130px 140px 1fr 140px 110px 110px", padding: "8px 20px", fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, letterSpacing: "0.08em", color: "var(--px-mid)", background: "var(--px-paper)", borderBottom: "1px solid var(--px-line2)", gap: 12 }}>
+              <div className="px-tabla-head" style={{ "--cols": "130px 140px 1fr 140px 110px 110px", "--pad": "8px 20px" } as CSSProperties}>
                 <span>FECHA</span>
                 <span>CONSERJE</span>
                 <span>UBICACIÓN</span>
@@ -116,30 +117,25 @@ export default async function TurnosPage() {
               {shifts.map((s, i) => (
                 <div
                   key={s.id}
-                  style={{
-                    display: "grid", gridTemplateColumns: "130px 140px 1fr 140px 110px 110px",
-                    padding: "11px 20px", gap: 12,
-                    borderBottom: i < shifts.length - 1 ? "1px solid var(--px-line2)" : "none",
-                    fontSize: 13, alignItems: "center",
-                  }}
+                  className="px-tabla-fila" style={{ "--cols": "130px 140px 1fr 140px 110px 110px", "--pad": "11px 20px", borderBottom: i < shifts.length - 1 ? "1px solid var(--px-line2)" : "none" } as CSSProperties}
                 >
-                  <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5 }}>
+                  <span data-l="FECHA" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5 }}>
                     {fmtDate(s.date)}
                   </span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div data-l="CONSERJE" style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{ width: 26, height: 26, borderRadius: 13, background: "var(--px-line)", color: "var(--px-ink2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 600, flexShrink: 0 }}>
                       {initials(s.staff.name)}
                     </div>
                     <span style={{ fontSize: 12.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.staff.name}</span>
                   </div>
-                  <span style={{ color: "var(--px-mid)", fontSize: 12.5 }}>{s.location ?? "—"}</span>
-                  <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5, color: "var(--px-ink2)" }}>
+                  <span data-l="UBICACIÓN" style={{ color: "var(--px-mid)", fontSize: 12.5 }}>{s.location ?? "—"}</span>
+                  <span data-l="HORARIO" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5, color: "var(--px-ink2)" }}>
                     {s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)}
                   </span>
-                  <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)" }}>
+                  <span data-l="TURNO" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)" }}>
                     {SHIFT_LABEL[s.type] ?? s.type}
                   </span>
-                  <span>
+                  <span data-l="ESTADO">
                     <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, letterSpacing: "0.06em", padding: "3px 7px", borderRadius: 4, color: STATUS_COLOR[s.status] ?? "var(--px-mid)", background: STATUS_BG[s.status] ?? "var(--px-line2)" }}>
                       {s.status.toUpperCase().replace("_", " ")}
                     </span>

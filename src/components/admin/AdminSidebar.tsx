@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
@@ -55,6 +56,20 @@ function roleLabel(role: string) {
 export default function AdminSidebar({ buildingName, unitsTotal, staffName, role }: Props) {
   const pathname = usePathname();
   const router = useRouter();
+  // En el teléfono la barra lateral es un cajón. Se abre desde la barra de
+  // arriba y se cierra sola al entrar a una sección: si no, uno toca
+  // "Encomiendas" y se queda mirando el mismo menú encima de la página.
+  const [abierto, setAbierto] = useState(false);
+
+  // Con el cajón abierto, el fondo no debe correrse bajo el dedo.
+  useEffect(() => {
+    if (!abierto) return;
+    const previo = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previo;
+    };
+  }, [abierto]);
 
   function isActive(href?: string) {
     if (!href) return false;
@@ -73,12 +88,55 @@ export default function AdminSidebar({ buildingName, unitsTotal, staffName, role
   const displayInitials = buildingName ? initials(buildingName) : "—";
 
   return (
+    <>
+      {/* Barra de arriba: solo existe bajo los 900px (lo decide globals.css) */}
+      <div className="px-topbar">
+        <button
+          onClick={() => setAbierto(true)}
+          aria-label="Abrir menú"
+          aria-expanded={abierto}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            width: 38, height: 38, marginLeft: -6, borderRadius: 8,
+            background: "none", border: "none", cursor: "pointer",
+            color: "var(--px-ink)", flexShrink: 0,
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <path d="M3 5.5h14M3 10h14M3 14.5h14" />
+          </svg>
+        </button>
+        <IconMark size={17} />
+        <span style={{ fontWeight: 600, fontSize: 15, letterSpacing: "-0.02em" }}>Portex</span>
+        <span
+          style={{
+            fontFamily: "var(--font-jetbrains-mono)", fontSize: 10,
+            color: "var(--px-mid)", flex: 1, minWidth: 0,
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+            textAlign: "right",
+          }}
+        >
+          {displayName}
+        </span>
+      </div>
+
+      <div
+        className="px-sidebar-backdrop"
+        data-abierto={abierto ? "si" : "no"}
+        onClick={() => setAbierto(false)}
+        aria-hidden
+      />
+
     <aside
+      className="px-sidebar"
+      data-abierto={abierto ? "si" : "no"}
+      // La posición vive en globals.css: en escritorio se queda pegada al
+      // costado, en el teléfono es un cajón. Un `position` inline acá le
+      // ganaría a la media query.
       style={{
         width: 232, flexShrink: 0,
         background: "white", borderRight: "1px solid var(--px-line)",
         display: "flex", flexDirection: "column",
-        height: "100dvh", position: "sticky", top: 0,
       }}
     >
       {/* Logo */}
@@ -183,6 +241,7 @@ export default function AdminSidebar({ buildingName, unitsTotal, staffName, role
             <Link
               key={n.id}
               href={n.href}
+              onClick={() => setAbierto(false)}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "7px 12px", borderRadius: 7,
@@ -256,5 +315,6 @@ export default function AdminSidebar({ buildingName, unitsTotal, staffName, role
         </button>
       </div>
     </aside>
+    </>
   );
 }

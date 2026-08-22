@@ -8,6 +8,7 @@ import { sendPushToProfiles } from "@/lib/push";
 import { rememberVisitor } from "@/lib/visitantes";
 import { randomInt, randomUUID } from "node:crypto";
 import { QR_PREFIJO } from "@/lib/qr";
+import { invitarResidente, organizacionDelUsuario } from "@/lib/invitaciones";
 import {
   REQUEST_TIMEOUT_SECONDS,
   findActivePass,
@@ -19,7 +20,6 @@ import {
   type VisitPassRow,
 } from "@/lib/citofono";
 import { normalizeRut } from "@/lib/rut";
-import { appUrl } from "@/lib/app-url";
 import { startOfDayUtc, todayInChile } from "@/lib/fecha";
 import { addVehicle, cancelLoan, lendSpot, removeVehicle } from "@/lib/parking";
 import type { Database } from "@/lib/database.types";
@@ -501,72 +501,96 @@ export async function sendTestPush(): Promise<{ ok: boolean; sent: number }> {
 export async function inviteResidentToPortal(input: {
   residentId: string;
   email: string;
-}): Promise<{ ok: boolean; error?: string }> {
+}): Promise<{ ok: boolean; yaTenia?: boolean; error?: string }> {
   const ctx = await getCtx();
   if (!ctx || ctx.role !== "admin") {
     return { ok: false, error: "Solo el administrador puede invitar residentes" };
   }
   if (!ctx.buildingId) return { ok: false, error: "Edificio no encontrado" };
 
-  const db = createServiceClient();
+  const organizationId = await organizacionDelUsuario(ctx.userId);
+  return invitarResidente(ctx.buildingId, organizationId, input.residentId, input.email);
+}
 
-  const { data: resident } = await db
+/**
+ * Invitar a muchos de una vez.
+ *
+ * Va de a uno y con una pausa entre correos a propósito: el SMTP tiene un
+ * límite por minuto y un edificio de 300 departamentos lo revienta en dos
+ * segundos. Si uno falla, los demás siguen; al final se informa qué pasó con
+ * cada uno, porque en un padrón importado de Excel siempre hay correos
+ * escritos con espacios o con la arroba de más.
+ */
+export async function inviteResidentsBulk(input: {
+  residentes: { id: string; email: string }[];
+}): Promise<{
+  ok: boolean;
+  enviadas: number;
+  yaTenian: number;
+  fallidas: { unidad: string; email: string; error: string }[];
+  /** Cuántos quedaron sin intentar porque se cortó a mitad de camino. */
+  sinIntentar?: number;
+  /** Por qué se cortó, si se cortó. */
+  corte?: string;
+  error?: string;
+}> {
+  const ctx = await getCtx();
+  if (!ctx || ctx.role !== "admin") {
+    return { ok: false, enviadas: 0, yaTenian: 0, fallidas: [], error: "Solo el administrador puede invitar residentes" };
+  }
+  if (!ctx.buildingId) {
+    return { ok: false, enviadas: 0, yaTenian: 0, fallidas: [], error: "Edificio no encontrado" };
+  }
+
+  const organizationId = await organizacionDelUsuario(ctx.userId);
+
+  const db = createServiceClient();
+  const { data: filas } = await db
     .from("residents")
-    .select("id, name, unit_code, building_id")
-    .eq("id", input.residentId)
+    .select("id, unit_code")
     .eq("building_id", ctx.buildingId)
-    .maybeSingle();
+    .in("id", input.residentes.map((r) => r.id));
 
-  if (!resident) return { ok: false, error: "Ese residente no es de tu edificio" };
+  const unidadPorId = new Map((filas ?? []).map((f) => [f.id, f.unit_code]));
 
-  const { data: profile } = await db
-    .from("profiles")
-    .select("organization_id")
-    .eq("id", ctx.userId)
-    .single();
+  let enviadas = 0;
+  let yaTenian = 0;
+  let sinIntentar = 0;
+  const fallidas: { unidad: string; email: string; error: string }[] = [];
+  let corte: string | undefined;
 
-  const { data: invited, error } = await db.auth.admin.inviteUserByEmail(input.email, {
-    data: {
-      role: "residente",
-      organization_id: profile!.organization_id,
-      full_name: resident.name,
-      resident_id: resident.id,
-    },
-    redirectTo: `${appUrl()}/auth/callback?next=/update-password`,
-  });
+  for (const [i, r] of input.residentes.entries()) {
+    const unidad = unidadPorId.get(r.id) ?? "—";
+    const res = await invitarResidente(ctx.buildingId, organizationId, r.id, r.email);
 
-  if (error) {
-    // Si ya tenía cuenta, igual lo vinculamos a la unidad
-    if (error.message.toLowerCase().includes("already been registered")) {
-      const { data: existing } = await db
-        .from("profiles")
-        .select("id")
-        .eq("full_name", resident.name)
-        .maybeSingle();
-      if (existing) {
-        await linkResidentMember(resident.id, existing.id, resident.building_id);
-        return { ok: true };
+    if (!res.ok) {
+      const motivo = res.error ?? "Error desconocido";
+
+      // El proveedor de correo corta por cantidad y por hora. Seguir
+      // intentando no manda ni uno más: solo llena la pantalla de 270 errores
+      // iguales y deja al administrador sin saber en cuál quedó.
+      if (/rate limit|too many requests|429|over_email_send_rate/i.test(motivo)) {
+        sinIntentar = input.residentes.length - i;
+        corte =
+          `Se alcanzó el límite de correos del proveedor. Salieron ${enviadas} y quedaron ` +
+          `${sinIntentar} sin invitar; vuelve a apretar el botón en un rato y sigue por donde iba.`;
+        break;
       }
+
+      fallidas.push({ unidad, email: r.email, error: motivo });
+    } else if (res.yaTenia) {
+      yaTenian++;
+    } else {
+      enviadas++;
     }
-    return { ok: false, error: error.message };
+
+    await new Promise((listo) => setTimeout(listo, 350));
   }
 
-  if (invited?.user?.id) {
-    await linkResidentMember(resident.id, invited.user.id, resident.building_id);
-  }
-
-  return { ok: true };
+  revalidatePath("/admin/residentes");
+  return { ok: true, enviadas, yaTenian, fallidas, sinIntentar, corte };
 }
 
-async function linkResidentMember(residentId: string, profileId: string, buildingId: string) {
-  const db = createServiceClient();
-  await db
-    .from("resident_members")
-    .upsert(
-      { resident_id: residentId, profile_id: profileId, building_id: buildingId },
-      { onConflict: "resident_id,profile_id" }
-    );
-}
 
 // ── Estacionamiento y autos del residente ─────────────────────────
 //

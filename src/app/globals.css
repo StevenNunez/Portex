@@ -41,3 +41,335 @@ html, body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MÓVIL PRIMERO
+   ---------------------------------------------------------------------------
+   La app está escrita con estilos inline, y un estilo inline no puede tener
+   media query. Así que lo que cambia según el ancho vive acá, en clases que
+   leen variables: el componente sigue mandando su medida de escritorio por
+   `style={{ "--cols": ... }}` y este archivo decide qué hacer con ella en un
+   teléfono.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+html {
+  /* Safari en horizontal agranda el texto por su cuenta y descuadra todo. */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  /* `clip` y no `hidden`: `hidden` en un ancestro rompe todos los
+     `position: sticky` de las cabeceras de tabla. */
+  overflow-x: clip;
+  -webkit-tap-highlight-color: transparent;
+}
+
+img, svg, video, canvas {
+  max-width: 100%;
+}
+
+/* iOS hace zoom al tocar un campo con letra menor a 16px y deja la pantalla
+   corrida. Los formularios usan 13px inline, así que hay que ganarle. */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ── Panel del administrador ──────────────────────────────────────────────
+   En escritorio la barra lateral está siempre a la vista. En un teléfono se
+   come media pantalla, así que se convierte en un cajón que entra desde la
+   izquierda, con una barra superior que lo abre. */
+
+.px-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.px-topbar,
+.px-sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .px-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 60;
+    box-shadow: 6px 0 40px rgba(0, 0, 0, 0.14);
+    transform: translateX(-100%);
+  }
+  .px-sidebar[data-abierto="si"] {
+    transform: translateX(0);
+  }
+
+  .px-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .px-sidebar-backdrop[data-abierto="si"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .px-topbar {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    align-items: center;
+    gap: 10px;
+    height: 52px;
+    padding: 0 14px;
+    padding-top: env(safe-area-inset-top, 0px);
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--px-line);
+    flex-shrink: 0;
+  }
+
+  /* El contenido deja de compartir fila con la barra lateral. */
+  .px-admin-shell {
+    display: block !important;
+  }
+}
+
+/* ── Cabeceras de página ──────────────────────────────────────────────────
+   32px de aire a los lados en un teléfono de 360px es un tercio del ancho. */
+
+.px-head {
+  padding: 22px clamp(16px, 4vw, 32px) 18px;
+  border-bottom: 1px solid var(--px-line);
+  flex-shrink: 0;
+  background: white;
+}
+
+.px-head-fila {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.px-head h1 {
+  font-size: clamp(22px, 5.5vw, 30px);
+}
+
+@media (max-width: 700px) {
+  .px-head-fila {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ── Tablas ───────────────────────────────────────────────────────────────
+   Seis columnas no caben en un teléfono. Bajo los 860px la fila deja de ser
+   fila: cada registro pasa a ser una tarjeta con sus datos uno bajo otro, y
+   la cabecera de columnas —que ya no encabeza nada— desaparece. */
+
+.px-tabla-head {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 12px;
+  align-items: center;
+  padding: var(--pad, 10px clamp(16px, 4vw, 32px));
+  font-family: var(--font-jetbrains-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--px-mid);
+  background: var(--px-paper);
+  border-bottom: 1px solid var(--px-line);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.px-tabla-fila {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 12px;
+  align-items: center;
+  /* `--pad` porque no todas las tablas viven al ras de la página: las que
+     están dentro de una tarjeta traen su propio margen. */
+  padding: var(--pad, 13px clamp(16px, 4vw, 32px));
+  font-size: 13px;
+}
+
+@media (max-width: 860px) {
+  .px-tabla-head {
+    display: none;
+  }
+  /* Sin la cabecera, "Martín Reyes" dos veces seguidas no dice quién trajo el
+     paquete y quién lo retiró. Cada celda se rotula sola con el título de su
+     columna, que viaja en `data-l`. */
+  .px-tabla-fila > [data-l]::before {
+    content: attr(data-l);
+    display: block;
+    font-family: var(--font-jetbrains-mono);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: var(--px-mid2);
+    margin-bottom: 1px;
+  }
+  .px-tabla-fila {
+    grid-template-columns: 1fr;
+    gap: 5px;
+    align-items: flex-start;
+    padding: 14px 16px;
+  }
+  /* Los estados y etiquetas sueltas quedan pegados al borde izquierdo en vez
+     de estirarse a lo ancho de la tarjeta. */
+  .px-tabla-fila > * {
+    min-width: 0;
+  }
+}
+
+/* ── Bitácora del día (panel de control) ──────────────────────────────────
+   Cinco columnas: ícono, hora, tipo, quién, dirección. En el teléfono se cae
+   la etiqueta de tipo —el ícono de la izquierda ya dice lo mismo— y el resto
+   sigue cabiendo en una línea. */
+
+.px-actividad {
+  display: grid;
+  grid-template-columns: 18px 44px 80px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+}
+
+@media (max-width: 700px) {
+  .px-actividad {
+    grid-template-columns: 16px 42px 1fr auto;
+    gap: 8px;
+  }
+  .px-actividad > :nth-child(3) {
+    display: none;
+  }
+}
+
+/* Cuando la tabla es realmente una tabla (muchas columnas numéricas) y
+   apilarla no ayuda, se deja correr a lo ancho con scroll propio. */
+.px-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Rejillas que se adaptan solas ────────────────────────────────────────
+   `--cols` en escritorio, una o dos columnas en el teléfono. */
+
+.px-grid {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: var(--gap, 12px);
+}
+
+@media (max-width: 860px) {
+  .px-grid {
+    grid-template-columns: var(--cols-tablet, var(--cols-movil, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .px-grid {
+    grid-template-columns: var(--cols-movil, 1fr);
+  }
+}
+
+/* ── Cajón lateral (formularios) ──────────────────────────────────────────
+   440px de ancho en una pantalla de 390px se sale. */
+
+@media (max-width: 520px) {
+  .px-drawer {
+    width: 100vw !important;
+  }
+}
+
+/* ── Portería ─────────────────────────────────────────────────────────────
+   La pantalla del conserje se diseñó para el monitor de la portería. En un
+   teléfono los seis botones grandes pasan a dos columnas. */
+
+@media (max-width: 760px) {
+  .px-tiles {
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-rows: none !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .px-conserje-pad {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  /* Con la frase oculta, el `space-between` inline deja el + pegado a la
+     izquierda. El `!important` es para ganarle a ese estilo inline. */
+  .px-tiles button > :last-child {
+    justify-content: flex-end !important;
+  }
+  .px-conserje-pie {
+    grid-template-columns: 1fr !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+}
+
+/* ── Portada ──────────────────────────────────────────────────────────────
+   Los enlaces del medio de la barra no caben junto al logo y los botones.
+   Se van; las mismas secciones siguen a un scroll de distancia. */
+
+@media (max-width: 780px) {
+  .px-nav-links {
+    display: none !important;
+  }
+}
+
+/* Cosas que solo tienen sentido cuando sobra ancho. */
+@media (max-width: 760px) {
+  .px-solo-ancho {
+    display: none !important;
+  }
+}
+
+
+/* ── El cartel del ascensor ───────────────────────────────────────────────
+   "Imprimir cartel" desde Configuración manda a la impresora solo el recuadro
+   con el QR y el código: el resto del panel —menú, botones, el navegador—
+   no tiene nada que hacer en un papel pegado en un ascensor. */
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .px-cartel,
+  .px-cartel * {
+    visibility: visible;
+  }
+  .px-cartel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border: none !important;
+    padding: 0 !important;
+    /* En papel el QR manda: se pone arriba y grande, no al costado. */
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 28px;
+  }
+  .px-cartel svg {
+    width: 320px !important;
+    height: 320px !important;
+  }
+  .px-sin-imprimir {
+    display: none !important;
+  }
+}

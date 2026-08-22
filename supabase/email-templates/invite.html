@@ -52,8 +52,18 @@
               </h1>
               <p style="margin:0 0 6px;font-size:15px;color:#5A5652;line-height:1.65;text-align:center;">Tu edificio empezó a usar <strong>Portex</strong> para registrar las visitas, las encomiendas y quién entra — y te dieron acceso.</p><p style="margin:0 0 6px;font-size:15px;color:#5A5652;line-height:1.65;text-align:center;">Crea tu contraseña para acceder — te toma menos de un minuto.</p>
 
+              <!-- El enlace NO usa {{ .ConfirmationURL }} a propósito.
+                   Ese enlace gasta el token en el primer GET, y Gmail, Outlook
+                   Safe Links y los antivirus corporativos abren los enlaces del
+                   correo para revisarlos antes de que la persona los toque: al
+                   hacer clic, el token ya estaba quemado y Supabase respondía
+                   `otp_expired`. Con `token_hash` el token viaja sin gastarse y
+                   se canjea recién cuando la persona aprieta el botón en
+                   /invitacion. El dominio va escrito y no {{ .SiteURL }} porque
+                   el Site URL del proyecto tiene un comodín (`/**`) que
+                   rompería la ruta. -->
               <div style="text-align:center;margin-top:32px;">
-                <a href="{{ .ConfirmationURL }}"
+                <a href="https://portex.teolabs.app/invitacion?token_hash={{ .TokenHash }}&type=invite&email={{ .Email }}"
                   style="display:inline-block;padding:13px 32px;background:#1E1B17;
                   color:#F9F7F4;border-radius:9px;font-size:15px;font-weight:600;
                   letter-spacing:-0.02em;text-decoration:none;">

@@ -68,6 +68,7 @@ export default function AddPersonalButton() {
         style={{
           background: "white", border: "1px solid var(--px-line)",
           borderRadius: 8, padding: "9px 14px", fontSize: 13, fontWeight: 500,
+          whiteSpace: "nowrap", flexShrink: 0,
           fontFamily: "var(--font-inter-tight), Inter, system-ui, sans-serif",
           cursor: "pointer", color: "var(--px-ink2)",
         }}

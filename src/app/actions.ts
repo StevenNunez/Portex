@@ -808,12 +808,14 @@ export async function importResidents(
     household?: string;
     rut?: string;
     contact?: string;
+    /** Con este correo se le puede dar acceso al portal después. */
+    email?: string;
     status?: string;
   }>
-): Promise<{ ok: boolean; inserted: number; error?: string }> {
+): Promise<{ ok: boolean; inserted: number; conCorreo: number; error?: string }> {
   const ctx = await getAdminContext();
-  if (!ctx) return { ok: false, inserted: 0, error: NO_ADMIN };
-  if (!ctx.buildingId) return { ok: false, inserted: 0, error: "Edificio no encontrado" };
+  if (!ctx) return { ok: false, inserted: 0, conCorreo: 0, error: NO_ADMIN };
+  if (!ctx.buildingId) return { ok: false, inserted: 0, conCorreo: 0, error: "Edificio no encontrado" };
 
   const db = createServiceClient();
   const validStatuses = ["activo", "pendiente", "inactivo"];
@@ -829,6 +831,9 @@ export async function importResidents(
       household: r.household?.trim() || null,
       rut: r.rut?.trim() || null,
       contact: r.contact?.trim() || null,
+      // Se guarda para poder invitarlo después; que quede acá no significa
+      // que ya se le haya mandado nada — eso lo dice `invited_at`.
+      invite_email: r.email?.trim().toLowerCase() || null,
       status: validStatuses.includes(r.status?.toLowerCase() ?? "")
         ? (r.status!.toLowerCase() as "activo" | "pendiente" | "inactivo")
         : "activo",
@@ -852,7 +857,7 @@ export async function importResidents(
 
   if (toInsert.length > 0) {
     const { error, count } = await db.from("residents").insert(toInsert).select();
-    if (error) return { ok: false, inserted: 0, error: error.message };
+    if (error) return { ok: false, inserted: 0, conCorreo: 0, error: error.message };
     inserted += count ?? toInsert.length;
   }
 
@@ -860,17 +865,25 @@ export async function importResidents(
     const id = existingMap.get(r.unit_code)!;
     const { error } = await db
       .from("residents")
-      .update({ name: r.name, household: r.household, rut: r.rut, contact: r.contact, status: r.status, tags: r.tags })
+      .update({
+        name: r.name, household: r.household, rut: r.rut, contact: r.contact,
+        status: r.status, tags: r.tags,
+        // Sin correo en el archivo no se borra el que ya estaba: puede ser
+        // el de una invitación que ya se mandó.
+        ...(r.invite_email ? { invite_email: r.invite_email } : {}),
+      })
       .eq("id", id);
     if (error) updateErrors.push(r.unit_code);
     else inserted++;
   }
 
+  const conCorreo = records.filter((r) => r.invite_email).length;
+
   if (updateErrors.length > 0) {
-    return { ok: true, inserted, error: `Advertencia: no se pudieron actualizar ${updateErrors.length} unidades (${updateErrors.join(", ")})` };
+    return { ok: true, inserted, conCorreo, error: `Advertencia: no se pudieron actualizar ${updateErrors.length} unidades (${updateErrors.join(", ")})` };
   }
 
-  return { ok: true, inserted };
+  return { ok: true, inserted, conCorreo };
 }
 
 // ── Onboarding ───────────────────────────────────────────────────
@@ -1016,6 +1029,43 @@ export async function inviteConserje(input: {
 // la invitación — leído acá en el servidor, no recibido del cliente:
 // aceptarlos del cliente permitía que cualquier usuario se declarara
 // admin de la organización que quisiera.
+/**
+ * Lo que hay que mostrarle a alguien que está terminando de crear su cuenta:
+ * con qué correo entra y a qué edificio queda ligado. Es la única forma de
+ * que sepa que su cuenta ya está vinculada al condominio y no está
+ * registrándose desde cero.
+ */
+export async function datosDeInvitacion(): Promise<{
+  email: string | null;
+  orgName: string | null;
+  buildingName: string | null;
+  role: string | null;
+}> {
+  const user = await getSessionUser();
+  if (!user) return { email: null, orgName: null, buildingName: null, role: null };
+
+  const meta = user.user_metadata ?? {};
+  const organizationId = typeof meta.organization_id === "string" ? meta.organization_id : null;
+  const role = typeof meta.role === "string" ? meta.role : null;
+
+  if (!organizationId) {
+    return { email: user.email ?? null, orgName: null, buildingName: null, role };
+  }
+
+  const db = createServiceClient();
+  const [{ data: org }, { data: building }] = await Promise.all([
+    db.from("organizations").select("name").eq("id", organizationId).maybeSingle(),
+    db.from("buildings").select("name").eq("organization_id", organizationId).limit(1).maybeSingle(),
+  ]);
+
+  return {
+    email: user.email ?? null,
+    orgName: org?.name ?? null,
+    buildingName: building?.name ?? null,
+    role,
+  };
+}
+
 export async function syncInvitedProfile(input: {
   fullName?: string;
 }): Promise<{ ok: boolean; error?: string }> {

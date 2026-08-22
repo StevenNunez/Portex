@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
+import MarcaPortex from "@/components/MarcaPortex";
 import {
   createOnboardingOrg,
   createOnboardingBuilding,
@@ -182,6 +183,7 @@ export default function OnboardingPage() {
   if (step === "done") {
     return (
       <div style={wrapperStyle}>
+        <MarcaPortex />
         <div style={{ ...cardStyle, textAlign: "center" }}>
           <div
             style={{
@@ -230,9 +232,7 @@ export default function OnboardingPage() {
   if (step === "org") {
     return (
       <div style={wrapperStyle}>
-        <div style={{ fontWeight: 700, fontSize: 20, letterSpacing: "-0.045em", marginBottom: 40 }}>
-          Portex
-        </div>
+        <MarcaPortex />
         <div style={cardStyle}>
           <StepDots step={step} />
           <h1 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em" }}>
@@ -281,9 +281,7 @@ export default function OnboardingPage() {
   if (step === "building") {
     return (
       <div style={wrapperStyle}>
-        <div style={{ fontWeight: 700, fontSize: 20, letterSpacing: "-0.045em", marginBottom: 40 }}>
-          Portex
-        </div>
+        <MarcaPortex />
         <div style={cardStyle}>
           <StepDots step={step} />
           <h1 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em" }}>
@@ -382,27 +380,62 @@ export default function OnboardingPage() {
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
                 Unidades por torre
               </label>
+              {/* El deslizador sirve para tantear, pero clavar un número exacto
+                  con el dedo es imposible: al lado va el campo para escribirlo. */}
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <input
                   type="range"
-                  min={4}
+                  min={1}
                   max={200}
-                  step={4}
-                  value={unitsPerTower}
+                  step={1}
+                  value={Math.min(unitsPerTower, 200)}
                   onChange={(e) => setUnitsPerTower(Number(e.target.value))}
+                  aria-label="Unidades por torre"
                   style={{ flex: 1, accentColor: "var(--px-ink)" }}
                 />
-                <span
-                  style={{
-                    fontFamily: "var(--font-jetbrains-mono), monospace",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    minWidth: 36,
-                    textAlign: "right",
-                  }}
-                >
-                  {unitsPerTower}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--px-line)", borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => setUnitsPerTower((u) => Math.max(1, u - 1))}
+                    aria-label="Una unidad menos"
+                    style={{
+                      padding: "9px 13px", fontSize: 18, lineHeight: 1,
+                      background: "var(--px-paper)", border: "none", borderRight: "1px solid var(--px-line)",
+                      cursor: "pointer", color: "var(--px-ink2)", fontFamily: "monospace",
+                    }}
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={999}
+                    value={unitsPerTower}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value, 10);
+                      setUnitsPerTower(isNaN(v) ? 0 : Math.min(999, Math.max(0, v)));
+                    }}
+                    onBlur={() => setUnitsPerTower((u) => (u < 1 ? 1 : u))}
+                    style={{
+                      width: 64, padding: "9px 0", textAlign: "center",
+                      fontSize: 15, fontWeight: 600, border: "none", outline: "none",
+                      fontFamily: "var(--font-jetbrains-mono), monospace",
+                      background: "white", color: "var(--px-ink)",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setUnitsPerTower((u) => Math.min(999, u + 1))}
+                    aria-label="Una unidad más"
+                    style={{
+                      padding: "9px 13px", fontSize: 18, lineHeight: 1,
+                      background: "var(--px-paper)", border: "none", borderLeft: "1px solid var(--px-line)",
+                      cursor: "pointer", color: "var(--px-ink2)", fontFamily: "monospace",
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
               <div style={{ marginTop: 8, fontSize: 12, color: "var(--px-mid)" }}>
                 Total:{" "}
@@ -427,16 +460,27 @@ export default function OnboardingPage() {
   // ── Step 3: Staff ─────────────────────────────────────────────
   return (
     <div style={wrapperStyle}>
-      <div style={{ fontWeight: 700, fontSize: 20, letterSpacing: "-0.045em", marginBottom: 40 }}>
-        Portex
-      </div>
+      <MarcaPortex />
       <div style={cardStyle}>
         <StepDots step={step} />
-        <h1 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em" }}>
-          Invita a tu primer conserje
-        </h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em" }}>
+            ¿Invitamos a un conserje?
+          </h1>
+          <span
+            style={{
+              fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em",
+              padding: "3px 7px", borderRadius: 5, color: "var(--px-mid)",
+              background: "var(--px-paper)", border: "1px solid var(--px-line2)",
+            }}
+          >
+            OPCIONAL
+          </span>
+        </div>
         <p style={{ margin: "0 0 28px", fontSize: 14, color: "var(--px-mid)", lineHeight: 1.5 }}>
-          Le enviaremos un enlace para que cree su contraseña y acceda directamente.
+          Le llega un correo para que cree su contraseña y entre directo a la pantalla
+          de portería. Si todavía no sabes quién va a ser, sáltalo: se invita cuando
+          quieras desde <strong style={{ color: "var(--px-ink2)", fontWeight: 500 }}>Configuración → Personal</strong>.
         </p>
         {errorBlock}
         <form onSubmit={handleStaffSubmit}>
@@ -453,10 +497,28 @@ export default function OnboardingPage() {
             />
           </div>
 
-          <button type="submit" disabled={loading} style={{ ...BTN_PRIMARY, opacity: loading ? 0.6 : 1, cursor: loading ? "not-allowed" : "pointer" }}>
-            {loading ? "Enviando…" : staffEmail ? "Enviar invitación →" : "Terminar sin invitar →"}
+          <button
+            type="submit"
+            disabled={loading || !staffEmail}
+            style={{
+              ...BTN_PRIMARY,
+              opacity: loading || !staffEmail ? 0.45 : 1,
+              cursor: loading || !staffEmail ? "not-allowed" : "pointer",
+            }}
+          >
+            {loading ? "Enviando…" : "Enviar invitación →"}
           </button>
-          <button type="button" onClick={() => setStep("building")} style={BTN_GHOST}>
+
+          {/* Saltar no es "atrás": es una salida de primera clase. */}
+          <button
+            type="button"
+            onClick={() => { setStaffEmail(""); setStep("done"); }}
+            disabled={loading}
+            style={{ ...BTN_GHOST, color: "var(--px-ink2)" }}
+          >
+            Lo hago después, ir al panel →
+          </button>
+          <button type="button" onClick={() => setStep("building")} style={{ ...BTN_GHOST, marginTop: 8 }}>
             ← Atrás
           </button>
         </form>

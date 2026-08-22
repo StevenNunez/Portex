@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type ActivityItem, type Resident, type FrequentVisitor, type PendingParcel } from "@/lib/mock-data";
 import { TILES, type TileId } from "@/lib/config";
@@ -15,6 +15,11 @@ import SimpleEntryDrawer, { type EntryType } from "./SimpleEntryDrawer";
 import EncomiendaDrawer from "./EncomiendaDrawer";
 import AsistenciaDrawer, { type PresentStaff } from "./AsistenciaDrawer";
 import QrScanDrawer from "./QrScanDrawer";
+import SolicitudesDrawer from "./SolicitudesDrawer";
+import AvisosPorteria from "./AvisosPorteria";
+import { solicitudesEsperando } from "@/app/autoregistro-actions";
+import { escucharPush } from "@/lib/push-navegador";
+import type { SolicitudPendiente } from "@/lib/autoregistro-tipos";
 import { NOTICE_LABEL, type NoticeKind } from "@/lib/avisos-tipos";
 import { endShift } from "@/app/actions";
 import { registerApprovedRequest } from "@/app/citofono-actions";
@@ -65,9 +70,13 @@ interface Props {
   avisos?: AvisoPorteria[];
   /** null cuando el edificio no tiene estacionamientos cargados. */
   parkingSummary?: { free: number; total: number } | null;
+  /** Vecinos que escanearon el cartel y esperan que la portería confirme. */
+  solicitudes?: SolicitudPendiente[];
+  /** Sin esta clave no hay avisos que ofrecer. */
+  vapidPublicKey?: string;
 }
 
-export default function TapTileScreen({ initialActivity, initialTodayActivity, initialPendingParcels, residents, frequentVisitors, staffName, buildingName, initialApproved = [], initialPresentStaff = [], avisos = [], parkingSummary }: Props) {
+export default function TapTileScreen({ initialActivity, initialTodayActivity, initialPendingParcels, residents, frequentVisitors, staffName, buildingName, initialApproved = [], initialPresentStaff = [], avisos = [], parkingSummary, solicitudes = [], vapidPublicKey = "" }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [activity, setActivity]             = useState<ActivityItem[]>(initialActivity);
@@ -79,6 +88,36 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
     setPendingParcels(initialPendingParcels);
   }
   const [showEncomiendas, setShowEncomiendas] = useState(false);
+  const [showSolicitudes, setShowSolicitudes] = useState(false);
+
+  // La portería es un kiosco que queda abierto todo el turno. Sin esto, una
+  // solicitud que entra a las 15:00 no aparece hasta que alguien recargue la
+  // página —y nadie recarga una pantalla que está "funcionando"—.
+  //
+  // El push despierta al conserje cuando no está mirando; esto mantiene la
+  // pantalla al día cuando sí lo está. Se pregunta solo por el número, que es
+  // una consulta mínima: recién si cambió se pide la página completa.
+  const revisarSolicitudes = useCallback(async () => {
+    try {
+      const cuantas = await solicitudesEsperando();
+      if (cuantas !== solicitudes.length) router.refresh();
+    } catch {
+      /* sin conexión: se reintenta en el próximo ciclo */
+    }
+  }, [router, solicitudes.length]);
+
+  useEffect(() => {
+    const id = setInterval(revisarSolicitudes, 30000);
+    const alVolver = () => document.visibilityState === "visible" && revisarSolicitudes();
+    document.addEventListener("visibilitychange", alVolver);
+    // Y en el acto cuando llega un push, sin esperar al próximo ciclo.
+    const dejarDeEscuchar = escucharPush(revisarSolicitudes);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", alVolver);
+      dejarDeEscuchar();
+    };
+  }, [revisarSolicitudes]);
   const [showAsistencia, setShowAsistencia]   = useState(false);
 
   // El marcaje se pinta al toque en el contador, pero la verdad la tiene el
@@ -175,7 +214,7 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
     <div style={{ minHeight: "100dvh", background: "var(--px-bone)", color: "var(--px-ink)", fontFamily: "var(--font-inter-tight), Inter, system-ui, sans-serif", display: "flex", flexDirection: "column", letterSpacing: "-0.005em" }}>
 
       {/* ── Top bar ──────────────────────────────────────────────────── */}
-      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 32px", flexShrink: 0 }}>
+      <header className="px-conserje-pad" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, padding: "20px 32px", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <IconMark size={20} />
           <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: "-0.02em" }}>Portex</span>
@@ -205,6 +244,7 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
             <span style={{ width: 6, height: 6, borderRadius: 3, background: "var(--px-ok)", flexShrink: 0 }} />
             {staffName ? staffName.split(" ")[0].toUpperCase() : "TURNO ACTIVO"}
           </span>
+          <AvisosPorteria vapidPublicKey={vapidPublicKey} />
           <button
             onClick={() => setShowEndShift(true)}
             style={{ padding: "6px 12px", background: "transparent", border: "1px solid var(--px-line)", borderRadius: 999, fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)", cursor: "pointer", letterSpacing: "0.04em" }}
@@ -216,7 +256,7 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
 
       {/* ── Lo que está pasando en el edificio ───────────────────────── */}
       {avisos.length > 0 && (
-        <div style={{ padding: "0 32px 14px", display: "flex", flexWrap: "wrap", gap: 8, flexShrink: 0 }}>
+        <div className="px-conserje-pad" style={{ padding: "0 32px 14px", display: "flex", flexWrap: "wrap", gap: 8, flexShrink: 0 }}>
           {avisos.map((a) => (
             <div
               key={a.id}
@@ -244,9 +284,43 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
         </div>
       )}
 
+      {/* ── Vecinos pidiendo acceso a la app ─────────────────────────── */}
+      {solicitudes.length > 0 && (
+        <div className="px-conserje-pad" style={{ padding: "0 32px 14px", flexShrink: 0 }}>
+          <button
+            onClick={() => setShowSolicitudes(true)}
+            style={{
+              width: "100%", textAlign: "left", font: "inherit", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
+              padding: "14px 20px", borderRadius: 14,
+              background: "oklch(0.96 0.05 250)", border: "1px solid oklch(0.72 0.11 250)",
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 10.5, letterSpacing: "0.08em", color: "oklch(0.42 0.13 250)" }}>
+                PIDEN ACCESO A LA APP · FALTA CONFIRMAR QUE VIVEN ACÁ
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.02em", marginTop: 3 }}>
+                {solicitudes.length === 1
+                  ? `${solicitudes[0].name} · ${solicitudes[0].unitCode}`
+                  : `${solicitudes.length} vecinos esperando`}
+              </div>
+            </div>
+            <span
+              style={{
+                flexShrink: 0, padding: "13px 22px", background: "oklch(0.45 0.14 250)", color: "white",
+                borderRadius: 12, fontSize: 15, fontWeight: 600,
+              }}
+            >
+              Revisar
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* ── Autorizadas esperando registro ───────────────────────────── */}
       {approved.length > 0 && (
-        <div style={{ padding: "0 32px 14px", display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
+        <div className="px-conserje-pad" style={{ padding: "0 32px 14px", display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
           {approved.map((a) => (
             <div
               key={a.id}
@@ -285,24 +359,26 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
       )}
 
       {/* ── Search ───────────────────────────────────────────────────── */}
-      <div style={{ padding: "4px 32px 18px", flexShrink: 0 }}>
-        <label style={{ background: "white", borderRadius: 16, border: "1px solid var(--px-line)", padding: "16px 22px", display: "flex", alignItems: "center", gap: 14, cursor: "text" }}>
+      <div className="px-conserje-pad" style={{ padding: "4px 32px 18px", flexShrink: 0 }}>
+        <label style={{ background: "white", borderRadius: 16, border: "1px solid var(--px-line)", padding: "clamp(12px, 3vw, 16px) clamp(14px, 4vw, 22px)", display: "flex", alignItems: "center", gap: 14, cursor: "text", minWidth: 0 }}>
           <IconSearch size={22} style={{ color: "var(--px-mid)" }} />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar persona, depto o placa…"
-            style={{ flex: 1, border: "none", outline: "none", fontSize: 20, color: "var(--px-ink)", background: "transparent", fontFamily: "var(--font-inter-tight), Inter, system-ui, sans-serif", letterSpacing: "-0.005em" }}
+            style={{ flex: 1, minWidth: 0, border: "none", outline: "none", fontSize: 20, color: "var(--px-ink)", background: "transparent", fontFamily: "var(--font-inter-tight), Inter, system-ui, sans-serif", letterSpacing: "-0.005em" }}
           />
-          <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)", padding: "6px 10px", borderRadius: 6, background: "var(--px-paper)", border: "1px solid var(--px-line2)", whiteSpace: "nowrap", flexShrink: 0 }}>
+          {/* En el teléfono los accesos ya están justo abajo, a la vista: la
+              pista sobra y no cabe. */}
+          <span className="px-solo-ancho" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)", padding: "6px 10px", borderRadius: 6, background: "var(--px-paper)", border: "1px solid var(--px-line2)", whiteSpace: "nowrap", flexShrink: 0 }}>
             O usa los accesos abajo ↓
           </span>
         </label>
       </div>
 
       {/* ── Tile grid ────────────────────────────────────────────────── */}
-      <section style={{ flex: 1, padding: "0 32px 14px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(2, 1fr)", gap: 14, minHeight: 0 }}>
+      <section className="px-tiles" style={{ flex: 1, padding: "0 32px 14px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(2, 1fr)", gap: 14, minHeight: 0 }}>
         {TILES.map((tile) => {
           const isPrimary = !!tile.primary;
           const isAlert   = !!tile.alert;
@@ -315,7 +391,7 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
                 background: isPrimary ? "var(--px-ink)" : "white",
                 color:      isPrimary ? "var(--px-bone)" : "var(--px-ink)",
                 border:     isPrimary ? "none" : "1px solid var(--px-line)",
-                borderRadius: 18, padding: "24px 26px",
+                borderRadius: 18, padding: "clamp(16px, 4vw, 24px) clamp(16px, 4vw, 26px)", minHeight: 132,
                 textAlign: "left", cursor: "pointer",
                 display: "flex", flexDirection: "column", justifyContent: "space-between",
                 font: "inherit", transition: "opacity 0.1s, transform 0.1s",
@@ -331,7 +407,7 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
                 </span>
               </div>
               <div>
-                <div style={{ fontSize: 40, fontWeight: 600, letterSpacing: "-0.025em", lineHeight: 1, marginBottom: 6, color: isAlert && !isPrimary ? "var(--px-alert)" : isPrimary ? "var(--px-bone)" : "var(--px-ink)" }}>
+                <div style={{ fontSize: "clamp(22px, 5.5vw, 40px)", fontWeight: 600, letterSpacing: "-0.025em", lineHeight: 1, marginBottom: 6, color: isAlert && !isPrimary ? "var(--px-alert)" : isPrimary ? "var(--px-bone)" : "var(--px-ink)" }}>
                   {tile.label}
                 </div>
                 <div style={{ fontSize: 14, color: isPrimary ? "oklch(0.92 0.005 60)" : "var(--px-mid)" }}>
@@ -339,7 +415,9 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8, fontSize: 12, color: isPrimary ? "oklch(0.92 0.005 60)" : "var(--px-mid)" }}>
-                <span style={{ fontFamily: "var(--font-jetbrains-mono)" }}>Tap para registrar</span>
+                {/* En dos columnas la frase se parte en dos líneas y el botón
+                    queda descuadrado. El círculo con el + dice lo mismo. */}
+                <span className="px-solo-ancho" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>Tap para registrar</span>
                 <span style={{ width: 32, height: 32, borderRadius: 16, background: isPrimary ? "var(--px-bone)" : isAlert ? "var(--px-alert)" : "var(--px-ink)", color: isPrimary ? "var(--px-ink)" : "var(--px-bone)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <IconPlus size={16} />
                 </span>
@@ -350,7 +428,7 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
       </section>
 
       {/* ── Bottom strip ─────────────────────────────────────────────── */}
-      <section style={{ padding: "8px 32px 20px", flexShrink: 0, display: "grid", gridTemplateColumns: "1fr 300px 250px", gap: 14 }}>
+      <section className="px-conserje-pie" style={{ padding: "8px 32px 20px", flexShrink: 0, display: "grid", gridTemplateColumns: "1fr 300px 250px", gap: 14 }}>
         {/* Recent activity */}
         <div style={{ background: "white", border: "1px solid var(--px-line)", borderRadius: 16, padding: "12px 18px", display: "flex", alignItems: "center", gap: 18, overflow: "hidden" }}>
           <div style={{ flexShrink: 0 }}>
@@ -438,6 +516,12 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
         open={openTile === "qr"}
         onClose={() => setOpenTile(null)}
         onRegistered={handleRegistered}
+      />
+
+      <SolicitudesDrawer
+        open={showSolicitudes}
+        onClose={() => setShowSolicitudes(false)}
+        solicitudes={solicitudes}
       />
 
       <AsistenciaDrawer

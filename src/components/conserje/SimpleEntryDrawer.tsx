@@ -58,7 +58,7 @@ const FIELD_INPUT: React.CSSProperties = {
 const DRAWER: React.CSSProperties = {
   position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
   background: "var(--px-bone)", borderRadius: "24px 24px 0 0",
-  padding: "0 28px 36px", maxHeight: "82dvh",
+  padding: "0 clamp(16px, 5vw, 28px) calc(36px + env(safe-area-inset-bottom, 0px))", maxHeight: "82dvh",
   display: "flex", flexDirection: "column",
 };
 

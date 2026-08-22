@@ -31,6 +31,15 @@ export interface ResidentRow {
   rut: string | null;
   contact: string | null;
   status: string;
+  /** A qué correo se le mandó la invitación al portal, si se mandó. */
+  invite_email: string | null;
+  invited_at: string | null;
+  /**
+   * Si ya creó su contraseña y quedó ligado a la unidad. Es lo único que
+   * importa de verdad: un invitado que nunca abrió el correo no puede
+   * autorizar a nadie.
+   */
+  tieneCuenta: boolean;
 }
 
 export interface FrequentVisitorRow {
@@ -116,15 +125,47 @@ export async function insertAccessLog(entry: {
   return data;
 }
 
+const CAMPOS_BASE = "id, unit_code, name, household, tags, rut, contact, status";
+/** El código de PostgreSQL para "esa columna no existe". */
+const COLUMNA_INEXISTENTE = "42703";
+
 export async function getResidents(buildingId: string): Promise<ResidentRow[]> {
   const db = createServerClient();
-  const { data, error } = await db
-    .from("residents")
-    .select("id, unit_code, name, household, tags, rut, contact, status")
-    .eq("building_id", buildingId)
-    .order("unit_code", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as ResidentRow[];
+
+  const [conAcceso, { data: miembros }] = await Promise.all([
+    db
+      .from("residents")
+      .select(`${CAMPOS_BASE}, invite_email, invited_at`)
+      .eq("building_id", buildingId)
+      .order("unit_code", { ascending: true }),
+    // Quiénes ya tienen cuenta. En consulta aparte y no con un join anidado
+    // porque un residente puede tener varias cuentas ligadas (el titular y
+    // su pareja) y acá solo interesa si hay al menos una.
+    db.from("resident_members").select("resident_id").eq("building_id", buildingId),
+  ]);
+
+  let filas = conAcceso.data;
+
+  // Esta lista también alimenta la pantalla de portería. Si el código se
+  // despliega antes de correr `migration_v13_acceso_residentes.sql`, la
+  // portería no puede quedarse caída por unas columnas que solo sirven en el
+  // panel: se pide lo de siempre y el estado de acceso queda en blanco hasta
+  // que la migración exista.
+  if (conAcceso.error) {
+    if (conAcceso.error.code !== COLUMNA_INEXISTENTE) throw conAcceso.error;
+
+    const { data, error } = await db
+      .from("residents")
+      .select(CAMPOS_BASE)
+      .eq("building_id", buildingId)
+      .order("unit_code", { ascending: true });
+    if (error) throw error;
+    filas = (data ?? []).map((r) => ({ ...r, invite_email: null, invited_at: null }));
+  }
+
+  const conCuenta = new Set((miembros ?? []).map((m) => m.resident_id));
+
+  return (filas ?? []).map((r) => ({ ...r, tieneCuenta: conCuenta.has(r.id) })) as ResidentRow[];
 }
 
 export async function getFrequentVisitors(

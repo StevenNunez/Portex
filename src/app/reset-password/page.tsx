@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
+import MarcaPortex from "@/components/MarcaPortex";
 
 const INPUT_STYLE: CSSProperties = {
   width: "100%",
@@ -57,9 +58,7 @@ export default function ResetPasswordPage() {
   if (sent) {
     return (
       <div style={wrapperStyle}>
-        <Link href="/" style={{ fontWeight: 700, fontSize: 20, letterSpacing: "-0.045em", color: "var(--px-ink)", textDecoration: "none", marginBottom: 40 }}>
-          Portex
-        </Link>
+        <MarcaPortex href="/" />
         <div style={{ width: "100%", maxWidth: 380, background: "white", border: "1px solid var(--px-line)", borderRadius: 16, padding: "40px 32px", textAlign: "center" }}>
           <div style={{ fontSize: 36, marginBottom: 20 }}>✉️</div>
           <h2 style={{ margin: "0 0 12px", fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em" }}>
@@ -81,9 +80,7 @@ export default function ResetPasswordPage() {
 
   return (
     <div style={wrapperStyle}>
-      <Link href="/" style={{ fontWeight: 700, fontSize: 20, letterSpacing: "-0.045em", color: "var(--px-ink)", textDecoration: "none", marginBottom: 40 }}>
-        Portex
-      </Link>
+      <MarcaPortex href="/" />
 
       <div style={{ width: "100%", maxWidth: 380, background: "white", border: "1px solid var(--px-line)", borderRadius: 16, padding: "36px 32px" }}>
         <h1 style={{ margin: "0 0 6px", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--px-ink)" }}>

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { redirect } from "next/navigation";
 import { getUserContext } from "@/lib/user-context";
 import { getNotices } from "@/lib/avisos";
@@ -31,13 +32,13 @@ export default async function AvisosPage() {
 
   return (
     <>
-      <header style={{ padding: "22px 32px 18px", borderBottom: "1px solid var(--px-line)", flexShrink: 0, background: "white" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16 }}>
+      <header className="px-head">
+        <div className="px-head-fila">
           <div>
             <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)", letterSpacing: "0.08em" }}>
               AVISOS · {vigentes} ACTIVOS · {avisos.length} EN TOTAL
             </div>
-            <h1 style={{ margin: "4px 0 0", fontSize: 30, fontWeight: 600, letterSpacing: "-0.025em" }}>
+            <h1 style={{ margin: "4px 0 0", fontWeight: 600, letterSpacing: "-0.025em" }}>
               Avisos del edificio
             </h1>
           </div>
@@ -57,12 +58,7 @@ export default async function AvisosPage() {
           </div>
         ) : (
           <>
-            <div style={{
-              display: "grid", gridTemplateColumns: COL, padding: "10px 32px",
-              fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, letterSpacing: "0.08em",
-              color: "var(--px-mid)", borderBottom: "1px solid var(--px-line)",
-              background: "var(--px-paper)", position: "sticky", top: 0, zIndex: 1, gap: 12,
-            }}>
+            <div className="px-tabla-head" style={{ "--cols": COL, "--pad": "10px 32px" } as CSSProperties}>
               <span>TIPO</span>
               <span>AVISO</span>
               <span>ALCANCE</span>
@@ -78,18 +74,13 @@ export default async function AvisosPage() {
               return (
                 <div
                   key={a.id}
-                  style={{
-                    display: "grid", gridTemplateColumns: COL, gap: 12, alignItems: "center",
-                    padding: "13px 32px", fontSize: 13,
-                    borderBottom: i < avisos.length - 1 ? "1px solid var(--px-line2)" : "none",
-                    background: activo ? "oklch(0.98 0.02 75)" : "white",
-                  }}
+                  className="px-tabla-fila" style={{ "--cols": COL, "--pad": "13px 32px", borderBottom: i < avisos.length - 1 ? "1px solid var(--px-line2)" : "none", background: activo ? "oklch(0.98 0.02 75)" : "white" } as CSSProperties}
                 >
-                  <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11 }}>
+                  <span data-l="TIPO" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11 }}>
                     {NOTICE_LABEL[a.kind].toUpperCase()}
                   </span>
 
-                  <div style={{ minWidth: 0 }}>
+                  <div data-l="AVISO" style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 500, fontSize: 13.5 }}>{a.title}</div>
                     {a.body && (
                       <div style={{ fontSize: 12.5, color: "var(--px-mid)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -98,19 +89,19 @@ export default async function AvisosPage() {
                     )}
                   </div>
 
-                  <span style={{ fontSize: 12.5, color: "var(--px-ink2)" }}>
+                  <span data-l="ALCANCE" style={{ fontSize: 12.5, color: "var(--px-ink2)" }}>
                     {a.scope === "edificio" ? "Todo el edificio" : a.unit_code}
                     <span style={{ color: "var(--px-mid)" }}>
                       {a.source === "porteria" ? " · portería" : ""}
                     </span>
                   </span>
 
-                  <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-ink2)" }}>
+                  <span data-l="CUÁNDO" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-ink2)" }}>
                     {fmt(a.starts_at)}
                     {a.ends_at ? ` → ${fmt(a.ends_at)}` : ""}
                   </span>
 
-                  <span>
+                  <span data-l="ESTADO">
                     <span style={{
                       fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, letterSpacing: "0.06em",
                       padding: "3px 7px", borderRadius: 4,

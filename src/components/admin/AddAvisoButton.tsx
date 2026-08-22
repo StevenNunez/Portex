@@ -15,7 +15,9 @@ import { NOTICE_LABEL, NOTICE_KINDS, type NoticeKind } from "@/lib/avisos-tipos"
  */
 
 function Row({ children }: { children: React.ReactNode }) {
-  return <div style={{ marginBottom: 16 }}>{children}</div>;
+  // `flex: 1` con `minWidth` para que los pares de campos se repartan el
+  // ancho y, si no alcanza, se pongan uno bajo el otro en vez de desbordar.
+  return <div style={{ marginBottom: 16, flex: 1, minWidth: 190 }}>{children}</div>;
 }
 
 /** "2026-08-18T14:00", que es lo que espera un input datetime-local. */
@@ -94,6 +96,7 @@ export default function AddAvisoButton({ unidades }: { unidades: string[] }) {
         style={{
           background: "var(--px-ink)", color: "var(--px-bone)", border: "none",
           borderRadius: 8, padding: "9px 14px", fontSize: 13, fontWeight: 600,
+          whiteSpace: "nowrap", flexShrink: 0,
           fontFamily: "var(--font-inter-tight), Inter, system-ui, sans-serif",
           cursor: "pointer",
         }}
@@ -172,7 +175,7 @@ export default function AddAvisoButton({ unidades }: { unidades: string[] }) {
             </Row>
           )}
 
-          <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
             <Row>
               <label style={LABEL}>Empieza</label>
               <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} style={FIELD} />

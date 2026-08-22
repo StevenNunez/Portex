@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUserContext } from "@/lib/user-context";
@@ -63,13 +64,13 @@ export default async function AsistenciaPage({
 
   return (
     <>
-      <header style={{ padding: "22px 32px 18px", borderBottom: "1px solid var(--px-line)", flexShrink: 0, background: "white" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16 }}>
+      <header className="px-head">
+        <div className="px-head-fila">
           <div>
             <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)", letterSpacing: "0.08em" }}>
               ASISTENCIA · {presentes.length} EN TURNO · {jornadas.length} JORNADAS · {atrasos} CON ATRASO
             </div>
-            <h1 style={{ margin: "4px 0 0", fontSize: 30, fontWeight: 600, letterSpacing: "-0.025em" }}>
+            <h1 style={{ margin: "4px 0 0", fontWeight: 600, letterSpacing: "-0.025em" }}>
               Asistencia del personal
             </h1>
           </div>
@@ -180,7 +181,7 @@ export default async function AsistenciaPage({
             </div>
           ) : (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 130px 110px 110px 130px", padding: "8px 20px", fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, letterSpacing: "0.08em", color: "var(--px-mid)", background: "var(--px-paper)", borderBottom: "1px solid var(--px-line2)", gap: 12 }}>
+              <div className="px-tabla-head" style={{ "--cols": "1fr 130px 110px 110px 130px", "--pad": "8px 20px" } as CSSProperties}>
                 <span>PERSONA</span>
                 <span>HORAS</span>
                 <span>JORNADAS</span>
@@ -190,13 +191,9 @@ export default async function AsistenciaPage({
               {resumen.map((r, i) => (
                 <div
                   key={r.staffId}
-                  style={{
-                    display: "grid", gridTemplateColumns: "1fr 130px 110px 110px 130px",
-                    padding: "11px 20px", gap: 12, alignItems: "center", fontSize: 13,
-                    borderBottom: i < resumen.length - 1 ? "1px solid var(--px-line2)" : "none",
-                  }}
+                  className="px-tabla-fila" style={{ "--cols": "1fr 130px 110px 110px 130px", "--pad": "11px 20px", borderBottom: i < resumen.length - 1 ? "1px solid var(--px-line2)" : "none" } as CSSProperties}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+                  <div data-l="PERSONA" style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
                     <div style={{ width: 26, height: 26, borderRadius: 13, background: "var(--px-line)", color: "var(--px-ink2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 600, flexShrink: 0 }}>
                       {initials(r.name)}
                     </div>
@@ -205,14 +202,14 @@ export default async function AsistenciaPage({
                       <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, color: "var(--px-mid)" }}>{r.role.toUpperCase()}</div>
                     </div>
                   </div>
-                  <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 13, fontWeight: 500 }}>
+                  <span data-l="HORAS" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 13, fontWeight: 500 }}>
                     {formatoDuracion(r.minutos)}
                   </span>
-                  <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, color: "var(--px-ink2)" }}>{r.jornadas}</span>
-                  <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, color: r.atrasos > 0 ? "var(--px-alert)" : "var(--px-mid)" }}>
+                  <span data-l="JORNADAS" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, color: "var(--px-ink2)" }}>{r.jornadas}</span>
+                  <span data-l="ATRASOS" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, color: r.atrasos > 0 ? "var(--px-alert)" : "var(--px-mid)" }}>
                     {r.atrasos > 0 ? `${r.atrasos} · ${formatoDuracion(r.minutosAtraso)}` : "—"}
                   </span>
-                  <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, color: r.abiertas > 0 ? "var(--px-alert)" : "var(--px-mid)" }}>
+                  <span data-l="SIN CERRAR" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, color: r.abiertas > 0 ? "var(--px-alert)" : "var(--px-mid)" }}>
                     {r.abiertas > 0 ? `${r.abiertas} jornada${r.abiertas > 1 ? "s" : ""}` : "—"}
                   </span>
                 </div>
@@ -233,7 +230,7 @@ export default async function AsistenciaPage({
             </div>
           ) : (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: COL, padding: "8px 20px", fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, letterSpacing: "0.08em", color: "var(--px-mid)", background: "var(--px-paper)", borderBottom: "1px solid var(--px-line2)", gap: 12 }}>
+              <div className="px-tabla-head" style={{ "--cols": COL, "--pad": "8px 20px" } as CSSProperties}>
                 <span>FECHA</span>
                 <span>PERSONA</span>
                 <span>ENTRADA</span>
@@ -249,28 +246,24 @@ export default async function AsistenciaPage({
                 return (
                   <div
                     key={j.id}
-                    style={{
-                      display: "grid", gridTemplateColumns: COL,
-                      padding: "11px 20px", gap: 12, alignItems: "center", fontSize: 13,
-                      borderBottom: i < jornadas.length - 1 ? "1px solid var(--px-line2)" : "none",
-                    }}
+                    className="px-tabla-fila" style={{ "--cols": COL, "--pad": "11px 20px", borderBottom: i < jornadas.length - 1 ? "1px solid var(--px-line2)" : "none" } as CSSProperties}
                   >
-                    <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5 }}>{fecha(j.date)}</span>
-                    <div style={{ minWidth: 0 }}>
+                    <span data-l="FECHA" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5 }}>{fecha(j.date)}</span>
+                    <div data-l="PERSONA" style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.staff.name}</div>
                       <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, color: "var(--px-mid)" }}>{j.staff.role.toUpperCase()}</div>
                     </div>
-                    <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12 }}>{hora(j.checked_in_at)}</span>
-                    <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, color: j.checked_out_at ? "var(--px-ink)" : "var(--px-ok)" }}>
+                    <span data-l="ENTRADA" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12 }}>{hora(j.checked_in_at)}</span>
+                    <span data-l="SALIDA" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, color: j.checked_out_at ? "var(--px-ink)" : "var(--px-ok)" }}>
                       {j.checked_out_at ? hora(j.checked_out_at) : "en turno"}
                     </span>
-                    <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, color: "var(--px-ink2)" }}>
+                    <span data-l="TRABAJADO" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, color: "var(--px-ink2)" }}>
                       {minutos == null ? "—" : formatoDuracion(minutos)}
                     </span>
-                    <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: tarde ? "var(--px-alert)" : "var(--px-mid)" }}>
+                    <span data-l="ATRASO" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: tarde ? "var(--px-alert)" : "var(--px-mid)" }}>
                       {j.late_minutes == null ? "sin turno" : tarde ? `${j.late_minutes} min` : "puntual"}
                     </span>
-                    <span style={{ fontSize: 12, color: "var(--px-mid)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <span data-l="NOTA" style={{ fontSize: 12, color: "var(--px-mid)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {j.note ?? (j.early_leave_minutes ? `Salió ${j.early_leave_minutes} min antes` : "—")}
                     </span>
                   </div>

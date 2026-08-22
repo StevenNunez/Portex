@@ -65,6 +65,7 @@ export default function AddResidenteButton() {
           borderRadius: 8, padding: "9px 14px", fontSize: 13, fontWeight: 500,
           fontFamily: "var(--font-inter-tight), Inter, system-ui, sans-serif",
           cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+          whiteSpace: "nowrap", flexShrink: 0,
         }}
       >
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.8">

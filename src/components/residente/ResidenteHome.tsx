@@ -9,7 +9,6 @@ import {
   respondAccessRequest,
   createVisitPass,
   revokeVisitPass,
-  savePushSubscription,
 } from "@/app/citofono-actions";
 import type { AccessRequestRow, VisitPassRow } from "@/lib/citofono";
 import { formatRut, formatRutInput, normalizeRut } from "@/lib/rut";
@@ -20,6 +19,7 @@ import AvisosDelEdificio, { type AvisoVisible } from "./AvisosDelEdificio";
 import PerfilDepto, { type PerfilVisible } from "./PerfilDepto";
 import TabsResidente, { type Tab } from "./TabsResidente";
 import type { MySpot, ResidentVehicle } from "@/lib/parking-types";
+import { activarPush, getPushPermission, subscribePushPermission } from "@/lib/push-navegador";
 
 /**
  * El portal del residente.
@@ -38,31 +38,6 @@ import type { MySpot, ResidentVehicle } from "@/lib/parking-types";
  * Lo urgente vive en Inicio y además se cuenta en el punto rojo de la
  * pestaña: si alguien está esperando abajo, se ve desde cualquier parte.
  */
-
-// ── Permiso de notificaciones, leído del navegador ─────────────────
-type PermisoPush = "granted" | "denied" | "default" | "no-soportado" | "desconocido";
-
-function getPushPermission(): PermisoPush {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return "no-soportado";
-  return Notification.permission;
-}
-
-/**
- * La Permissions API avisa cuando el residente cambia el permiso desde el
- * navegador. No todos los navegadores la exponen para `notifications`; si no
- * está, la suscripción no hace nada y el valor se lee igual en cada render.
- */
-function subscribePushPermission(onChange: () => void) {
-  let status: PermissionStatus | undefined;
-  navigator.permissions
-    ?.query({ name: "notifications" as PermissionName })
-    .then((s) => {
-      status = s;
-      s.addEventListener("change", onChange);
-    })
-    .catch(() => {});
-  return () => status?.removeEventListener("change", onChange);
-}
 
 interface Unit {
   residentId: string;
@@ -231,36 +206,9 @@ export default function ResidenteHome({
   async function activarNotificaciones() {
     if (!vapidPublicKey) return;
     setActivando(true);
-    try {
-      const permiso = await Notification.requestPermission();
-      if (permiso !== "granted") {
-        // El permiso lo lee `permisoPush`: no hace falta copiarlo a un estado.
-        return;
-      }
-
-      const reg = await navigator.serviceWorker.register("/sw.js");
-      await navigator.serviceWorker.ready;
-
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-      });
-
-      const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
-      if (json.endpoint && json.keys?.p256dh && json.keys?.auth) {
-        await savePushSubscription({
-          endpoint: json.endpoint,
-          p256dh: json.keys.p256dh,
-          auth: json.keys.auth,
-          userAgent: navigator.userAgent,
-        });
-      }
-      setSuscrito(true);
-    } catch {
-      /* el permiso quedó como esté; el botón vuelve a aparecer */
-    } finally {
-      setActivando(false);
-    }
+    const ok = await activarPush(vapidPublicKey);
+    if (ok) setSuscrito(true);
+    setActivando(false);
   }
 
   async function responder(id: string, decision: "aprobada" | "rechazada") {
@@ -794,12 +742,3 @@ function segundosRestantes(iso: string) {
   return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 1000));
 }
 
-// La clave VAPID viaja en base64url y el navegador la pide como bytes.
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = window.atob(base64);
-  const output = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; ++i) output[i] = raw.charCodeAt(i);
-  return output;
-}

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { redirect } from "next/navigation";
 import { getUserContext } from "@/lib/user-context";
 import { getParcels } from "@/lib/encomiendas";
@@ -34,15 +35,15 @@ export default async function EncomiendaPage() {
 
   return (
     <>
-      <header style={{ padding: "22px 32px 18px", borderBottom: "1px solid var(--px-line)", flexShrink: 0, background: "white" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+      <header className="px-head">
+        <div className="px-head-fila">
           <div>
             <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11, color: "var(--px-mid)", letterSpacing: "0.08em" }}>
               ENCOMIENDAS · {pendientes.length} SIN RETIRAR
               {olvidadas.length > 0 ? ` · ${olvidadas.length} HACE MÁS DE UNA SEMANA` : ""}
               {sinVerificar > 0 ? ` · ${sinVerificar} ENTREGADAS SIN CÓDIGO` : ""}
             </div>
-            <h1 style={{ margin: "4px 0 0", fontSize: 30, fontWeight: 600, letterSpacing: "-0.025em" }}>
+            <h1 style={{ margin: "4px 0 0", fontWeight: 600, letterSpacing: "-0.025em" }}>
               Encomiendas
             </h1>
           </div>
@@ -57,12 +58,7 @@ export default async function EncomiendaPage() {
           </div>
         ) : (
           <>
-            <div style={{
-              display: "grid", gridTemplateColumns: COL, padding: "10px 32px",
-              fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, letterSpacing: "0.08em",
-              color: "var(--px-mid)", borderBottom: "1px solid var(--px-line)",
-              background: "var(--px-paper)", position: "sticky", top: 0, zIndex: 1, gap: 12, alignItems: "center",
-            }}>
+            <div className="px-tabla-head" style={{ "--cols": COL } as CSSProperties}>
               <span>RECIBIDA</span>
               <span>UNIDAD</span>
               <span>QUIÉN LA TRAJO</span>
@@ -78,20 +74,20 @@ export default async function EncomiendaPage() {
               return (
                 <div
                   key={p.id}
+                  className="px-tabla-fila"
                   style={{
-                    display: "grid", gridTemplateColumns: COL, gap: 12, alignItems: "center",
-                    padding: "13px 32px", fontSize: 13,
+                    "--cols": COL,
                     borderBottom: i < rows.length - 1 ? "1px solid var(--px-line2)" : "none",
                     background: espera ? "oklch(0.98 0.02 28)" : "white",
-                  }}
+                  } as CSSProperties}
                 >
-                  <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5 }}>
+                  <span data-l="RECIBIDA" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5 }}>
                     {fmt(p.received_at)}
                   </span>
-                  <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, fontWeight: 600 }}>
+                  <span data-l="UNIDAD" style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, fontWeight: 600 }}>
                     {p.unit_code ?? "—"}
                   </span>
-                  <div style={{ minWidth: 0 }}>
+                  <div data-l="QUIÉN LA TRAJO" style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 500 }}>{p.courier ?? "Encomienda"}</div>
                     {p.description && (
                       <div style={{ fontSize: 12, color: "var(--px-mid)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -99,16 +95,16 @@ export default async function EncomiendaPage() {
                       </div>
                     )}
                   </div>
-                  <span style={{ color: p.picked_up_by ? "var(--px-ink)" : "var(--px-mid)" }}>
+                  <span data-l="QUIÉN LA RETIRÓ" style={{ color: p.picked_up_by ? "var(--px-ink)" : "var(--px-mid)" }}>
                     {p.picked_up_by ?? (espera ? `esperando hace ${dias} días` : "—")}
                   </span>
-                  <span style={{
+                  <span data-l="CÓMO" style={{
                     fontFamily: "var(--font-jetbrains-mono)", fontSize: 10.5,
                     color: p.pickup_method === "manual" ? "var(--px-alert)" : "var(--px-mid)",
                   }}>
                     {p.pickup_method ? RETIRO_LABEL[p.pickup_method].toUpperCase() : "—"}
                   </span>
-                  <span>
+                  <span data-l="ESTADO">
                     <span style={{
                       fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, letterSpacing: "0.06em",
                       padding: "3px 7px", borderRadius: 4,

@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (ctx.role !== "admin") redirect("/inicio");
 
   return (
-    <div style={{ display: "flex", minHeight: "100dvh", background: "var(--px-bone)" }}>
+    <div className="px-admin-shell" style={{ display: "flex", minHeight: "100dvh", background: "var(--px-bone)" }}>
       <AdminSidebar
         buildingName={ctx.buildingName}
         unitsTotal={ctx.unitsTotal}

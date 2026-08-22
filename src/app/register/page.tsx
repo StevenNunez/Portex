@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
+import MarcaPortex from "@/components/MarcaPortex";
 
 const INPUT_STYLE: CSSProperties = {
   width: "100%",
@@ -80,19 +81,7 @@ export default function RegisterPage() {
           padding: "40px 20px",
         }}
       >
-        <Link
-          href="/"
-          style={{
-            fontWeight: 700,
-            fontSize: 20,
-            letterSpacing: "-0.045em",
-            color: "var(--px-ink)",
-            textDecoration: "none",
-            marginBottom: 40,
-          }}
-        >
-          Portex
-        </Link>
+        <MarcaPortex href="/" />
         <div
           style={{
             width: "100%",
@@ -147,19 +136,7 @@ export default function RegisterPage() {
       }}
     >
       {/* Logo */}
-      <Link
-        href="/"
-        style={{
-          fontWeight: 700,
-          fontSize: 20,
-          letterSpacing: "-0.045em",
-          color: "var(--px-ink)",
-          textDecoration: "none",
-          marginBottom: 40,
-        }}
-      >
-        Portex
-      </Link>
+      <MarcaPortex href="/" />
 
       {/* Card */}
       <div
