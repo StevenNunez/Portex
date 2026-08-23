@@ -34,7 +34,17 @@ export function useResetOnOpen(open: boolean, reset: () => void, token = "") {
 }
 
 /**
- * Pone el cursor en el campo indicado al abrir.
+ * Pone el cursor en el campo indicado al abrir. **Solo con teclado físico.**
+ *
+ * En la portería de escritorio el foco automático ahorra un clic por registro,
+ * y con cien registros al día eso se nota. En una tablet o un teléfono hace
+ * justo lo contrario: al abrir el cajón sube el teclado, la hoja —que mide en
+ * `dvh`— se encoge, y los botones que están **arriba** del campo (Rappi,
+ * Pedidos Ya, Chilexpress…) quedan fuera de la pantalla. El conserje ve el
+ * cajón "bajarse" y no alcanza a tocar la plataforma que quería.
+ *
+ * `pointer: fine` distingue exactamente eso: mouse o lápiz sí, dedo no. Es el
+ * mismo criterio que usa `:hover` en los tiles de la portería.
  *
  * Los 80 ms son para que el drawer termine de entrar: si se enfoca antes, el
  * navegador cancela la animación al hacer scroll hacia el input.
@@ -42,6 +52,8 @@ export function useResetOnOpen(open: boolean, reset: () => void, token = "") {
 export function useFocusOnOpen(open: boolean, ref: RefObject<HTMLInputElement | null>) {
   useEffect(() => {
     if (!open) return;
+    if (typeof window !== "undefined" && !window.matchMedia("(pointer: fine)").matches) return;
+
     const id = setTimeout(() => ref.current?.focus(), 80);
     return () => clearTimeout(id);
   }, [open, ref]);

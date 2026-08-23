@@ -5,6 +5,7 @@ import {
   getPendingRequestsForResidents,
   getRecentRequestsForResidents,
   getPassesForResident,
+  getLlegadasParaUnidades,
 } from "@/lib/citofono";
 import { getSpotsForUnit, getVehiclesForResidents } from "@/lib/parking";
 import { getParcelsForUnit } from "@/lib/encomiendas";
@@ -50,7 +51,9 @@ export default async function ResidentePage() {
 
   const residentIds = units.map((u) => u.residentId);
 
-  const [pending, recent, passes, spots, vehicles, parcels, avisos, perfil] = await Promise.all([
+  const unitCodes = units.map((u) => u.unitCode);
+
+  const [pending, recent, passes, spots, vehicles, parcels, avisos, perfil, llegadas] = await Promise.all([
     getPendingRequestsForResidents(residentIds),
     getRecentRequestsForResidents(residentIds, 15),
     getPassesForResident(residentIds[0]),
@@ -61,6 +64,9 @@ export default async function ResidentePage() {
     ctx.buildingId ? getParcelsForUnit(ctx.buildingId, units[0].unitCode) : Promise.resolve([]),
     ctx.buildingId ? getActiveNotices(ctx.buildingId, units[0].unitCode) : Promise.resolve([]),
     getPerfil(units[0].residentId),
+    // Quién entró y salió por su departamento: el registro que el residente
+    // no tenía y que es la razón de ser de la app.
+    ctx.buildingId ? getLlegadasParaUnidades(ctx.buildingId, unitCodes, 20) : Promise.resolve([]),
   ]);
 
 
@@ -71,6 +77,7 @@ export default async function ResidentePage() {
       units={units}
       initialPending={pending}
       recent={recent}
+      llegadas={llegadas}
       passes={passes.filter((p) => p.status === "activo")}
       vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
       parkingSpots={spots}

@@ -192,7 +192,7 @@ export async function consumePass(passId: string): Promise<{ ok: boolean }> {
   const db = createServiceClient();
   const { data: pass } = await db
     .from("visit_passes")
-    .select("id, single_use, used_count, building_id")
+    .select("id, single_use, used_count, building_id, resident_id, visitor_name")
     .eq("id", passId)
     .maybeSingle();
 
@@ -206,6 +206,25 @@ export async function consumePass(passId: string): Promise<{ ok: boolean }> {
       status: pass.single_use ? "usado" : "activo",
     })
     .eq("id", passId);
+
+  // Este es el otro camino por el que entra una visita ya autorizada: el
+  // conserje la registra a mano y el sistema reconoce que traía pase. El
+  // residente tiene que enterarse igual que si la hubieran escaneado.
+  if (pass.resident_id) {
+    // La unidad se pide aparte y no con un join: los tipos generados no traen
+    // las relaciones y el anidado los deja en `never`.
+    const { data: unidad } = await db
+      .from("residents")
+      .select("unit_code")
+      .eq("id", pass.resident_id)
+      .maybeSingle();
+
+    await avisarLlegadaAlResidente({
+      residentId: pass.resident_id,
+      visitorName: pass.visitor_name,
+      unitCode: unidad?.unit_code ?? null,
+    });
+  }
 
   return { ok: true };
 }
@@ -746,6 +765,56 @@ export async function lookupPass(entrada: string): Promise<PassLookup> {
  * que sea una sola operación: bitácora, rastro de quién autorizó, pase
  * consumido y padrón de recurrentes al día.
  */
+/**
+ * Le avisa al departamento que su visita llegó.
+ *
+ * Es la razón de ser del producto: hasta ahora el residente dejaba el pase
+ * listo en la mañana y no se enteraba de nada más — tocaban la puerta sin
+ * saber quién era ni desde cuándo estaba abajo. Cuando la portería aprueba en
+ * el momento no hace falta, porque el residente acaba de responder el
+ * citófono; hace falta justamente cuando el permiso se dio **antes**.
+ *
+ * Nunca hace fallar el registro del ingreso: si el aviso no sale, el visitante
+ * igual entró y quedó en la bitácora.
+ */
+async function avisarLlegadaAlResidente(input: {
+  residentId: string;
+  visitorName: string;
+  unitCode: string | null;
+  autorizadaPor?: string | null;
+}) {
+  try {
+    const db = createServiceClient();
+    const { data: members } = await db
+      .from("resident_members")
+      .select("profile_id")
+      .eq("resident_id", input.residentId);
+
+    const profileIds = (members ?? []).map((m) => m.profile_id);
+    if (profileIds.length === 0) return;
+
+    const hora = new Date().toLocaleTimeString("es-CL", {
+      timeZone: "America/Santiago",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    await sendPushToProfiles(profileIds, {
+      title: `Llegó ${input.visitorName}`,
+      body: `Entró a portería a las ${hora}${input.unitCode ? ` · ${input.unitCode}` : ""}. Ya va subiendo.`,
+      url: "/residente",
+      // Sin `tag` fijo: dos visitas seguidas son dos avisos, no uno que pisa
+      // al otro. Que llegó el técnico no borra que llegó tu hermana.
+      tag: `llegada-${Date.now()}`,
+      // No es urgente como el citófono: ya está autorizado, es un aviso.
+      requireInteraction: false,
+    });
+  } catch {
+    /* el ingreso ya quedó registrado */
+  }
+}
+
 export async function registerPassEntry(
   passId: string
 ): Promise<{ ok: boolean; error?: string; visitorName?: string; unitCode?: string | null }> {
@@ -813,6 +882,12 @@ export async function registerPassEntry(
       /* el ingreso ya quedó registrado */
     }
   }
+
+  await avisarLlegadaAlResidente({
+    residentId: pass.residents.id,
+    visitorName: pass.visitor_name,
+    unitCode: pass.residents.unit_code,
+  });
 
   revalidatePath("/conserje");
   return { ok: true, visitorName: pass.visitor_name, unitCode: pass.residents.unit_code };

@@ -10,7 +10,7 @@ import {
   createVisitPass,
   revokeVisitPass,
 } from "@/app/citofono-actions";
-import type { AccessRequestRow, VisitPassRow } from "@/lib/citofono";
+import type { AccessRequestRow, VisitPassRow, LlegadaRow } from "@/lib/citofono";
 import { formatRut, formatRutInput, normalizeRut } from "@/lib/rut";
 import MiEstacionamiento from "./MiEstacionamiento";
 import PaseQR from "./PaseQR";
@@ -20,6 +20,8 @@ import PerfilDepto, { type PerfilVisible } from "./PerfilDepto";
 import TabsResidente, { type Tab } from "./TabsResidente";
 import type { MySpot, ResidentVehicle } from "@/lib/parking-types";
 import { activarPush, getPushPermission, subscribePushPermission } from "@/lib/push-navegador";
+import { sonarTimbre, type Timbre } from "@/lib/timbre";
+import { limpiarBadge, marcarBadge } from "@/lib/badge";
 
 /**
  * El portal del residente.
@@ -51,6 +53,8 @@ interface Props {
   units: Unit[];
   initialPending: AccessRequestRow[];
   recent: AccessRequestRow[];
+  /** Quién entró y salió por este departamento, de la bitácora del edificio. */
+  llegadas?: LlegadaRow[];
   passes: VisitPassRow[];
   /** Lo que llegó a portería para este departamento. */
   encomiendas?: EncomiendaMia[];
@@ -106,6 +110,16 @@ function fecha(iso: string) {
   });
 }
 
+/** Cómo se lee cada movimiento de la bitácora desde el departamento. */
+const MOVIMIENTO: Record<string, { verbo: string; color: string }> = {
+  in:       { verbo: "entró",             color: "var(--px-ok)" },
+  out:      { verbo: "salió",             color: "var(--px-alert)" },
+  delivery: { verbo: "dejó un pedido",    color: "var(--px-ink2)" },
+  parcel:   { verbo: "dejó una encomienda", color: "var(--px-ink2)" },
+  provider: { verbo: "entró a trabajar",  color: "var(--px-ink2)" },
+  vehicle:  { verbo: "entró en auto",     color: "var(--px-ink2)" },
+};
+
 const ESTADO_LABEL: Record<string, { label: string; color: string }> = {
   aprobada:      { label: "Autorizada",     color: "var(--px-ok)" },
   rechazada:     { label: "Rechazada",      color: "var(--px-alert)" },
@@ -119,6 +133,7 @@ export default function ResidenteHome({
   units,
   initialPending,
   recent,
+  llegadas = [],
   passes: initialPasses,
   encomiendas = [],
   avisos = [],
@@ -202,6 +217,49 @@ export default function ResidenteHome({
     if (pending.length > pendientesPrevios.current) setTab("inicio");
     pendientesPrevios.current = pending.length;
   }, [pending.length]);
+
+  // ── El punto rojo del ícono ────────────────────────────────────────
+  // Sigue exactamente al mismo número que el punto de la pestaña Inicio: lo
+  // que está esperando respuesta. Se limpia solo al resolverse, así que si la
+  // notificación se deslizó sin querer, el ícono lo sigue diciendo.
+  useEffect(() => {
+    if (enInicio > 0) marcarBadge(enInicio);
+    else limpiarBadge();
+  }, [enInicio]);
+
+  // ── El timbre ──────────────────────────────────────────────────────
+  // La notificación del sistema suena una vez y se calla; un citófono
+  // insiste hasta que alguien contesta. Mientras haya alguien esperando
+  // abajo y la app esté abierta, suena. Se calla solo al responder, al
+  // vencerse la solicitud o si el residente lo silencia.
+  const hayPendientes = pending.length > 0;
+  const [silenciado, setSilenciado] = useState(false);
+  const timbreRef = useRef<Timbre | null>(null);
+  const debeSonar = hayPendientes && !silenciado;
+
+  useEffect(() => {
+    if (!debeSonar) {
+      timbreRef.current?.detener();
+      timbreRef.current = null;
+      return;
+    }
+    if (!timbreRef.current) timbreRef.current = sonarTimbre();
+
+    return () => {
+      timbreRef.current?.detener();
+      timbreRef.current = null;
+    };
+  }, [debeSonar]);
+
+  // Silenciar es por visita, no para siempre: cuando ya no queda nadie
+  // esperando, el timbre vuelve a estar armado para la próxima. Se ajusta
+  // durante el render con estado —no con un ref— porque un ref no se puede
+  // leer ni escribir mientras se pinta.
+  const [huboPendientes, setHuboPendientes] = useState(hayPendientes);
+  if (huboPendientes !== hayPendientes) {
+    setHuboPendientes(hayPendientes);
+    if (!hayPendientes && silenciado) setSilenciado(false);
+  }
 
   async function activarNotificaciones() {
     if (!vapidPublicKey) return;
@@ -327,6 +385,28 @@ export default function ResidenteHome({
                     onResponder={responder}
                   />
                 ))}
+
+                {/* Callar el timbre tiene que estar a mano: si la única salida
+                    fuera silenciar el teléfono entero, el residente lo dejaría
+                    mudo y se perdería todas las visitas siguientes. Vuelve a
+                    quedar armado en cuanto se resuelve esta. */}
+                {!silenciado && (
+                  <button
+                    onClick={() => setSilenciado(true)}
+                    style={{
+                      alignSelf: "center", background: "none", border: "none",
+                      color: "var(--px-mid)", font: "inherit", fontSize: 13,
+                      padding: "6px 12px", cursor: "pointer",
+                      display: "flex", alignItems: "center", gap: 6,
+                    }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                      <path d="M9 3.5 5.5 6.5H3v3h2.5L9 12.5z" />
+                      <path d="M12.5 5.5 15 10M15 5.5l-2.5 4.5" />
+                    </svg>
+                    Silenciar el timbre
+                  </button>
+                )}
               </section>
             )}
 
@@ -362,6 +442,41 @@ export default function ResidenteHome({
                   </button>
                 )}
               </div>
+            )}
+
+            {/* Ya activadas, queda lo que Portex no puede hacer por su cuenta:
+                el volumen de la alerta lo decide el teléfono, no la app. Si
+                esto no se dice, el residente activa los avisos, no los escucha
+                y concluye que la app no sirve. */}
+            {pushState === "activo" && (
+              <details style={{ ...CARD, padding: "14px 18px" }}>
+                <summary style={{ cursor: "pointer", fontSize: 14, fontWeight: 500, letterSpacing: "-0.01em" }}>
+                  ¿No lo escuchas cuando llega alguien?
+                </summary>
+                <div style={{ fontSize: 13.5, color: "var(--px-mid)", lineHeight: 1.65, marginTop: 12 }}>
+                  <p style={{ margin: "0 0 10px" }}>
+                    El volumen de un aviso lo manda el teléfono, no Portex. Dos cosas lo
+                    arreglan y se hacen una sola vez:
+                  </p>
+                  <ol style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 8 }}>
+                    <li>
+                      <strong style={{ color: "var(--px-ink2)", fontWeight: 600 }}>Instala Portex</strong> en
+                      la pantalla de inicio. Desde el navegador los avisos llegan más débiles y
+                      el ícono no puede mostrarte el punto rojo.
+                    </li>
+                    <li>
+                      En los ajustes del teléfono, pon las notificaciones de Portex como{" "}
+                      <strong style={{ color: "var(--px-ink2)", fontWeight: 600 }}>urgentes</strong> o de
+                      máxima prioridad, y déjalas pasar el modo No molestar. Así suenan aunque
+                      el teléfono esté en silencio.
+                    </li>
+                  </ol>
+                  <p style={{ margin: "12px 0 0" }}>
+                    Con la app abierta, además, Portex toca un timbre que insiste hasta que
+                    respondes — como un citófono.
+                  </p>
+                </div>
+              </details>
             )}
 
             <AvisosDelEdificio avisos={avisos} />
@@ -567,13 +682,62 @@ export default function ResidenteHome({
               )}
             </section>
 
+            {/* Entradas y salidas: lo que de verdad pasó en la puerta.
+                Antes el residente solo veía lo que él mismo había respondido
+                por el citófono; una visita que entró con un pase creado ayer
+                no aparecía en ninguna parte. */}
+            {llegadas.length > 0 && (
+              <section style={CARD}>
+                <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 4 }}>
+                  Entradas y salidas
+                </div>
+                <div style={{ fontSize: 13, color: "var(--px-mid)", marginBottom: 14 }}>
+                  Quién pasó por portería preguntando por tu departamento
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {llegadas.map((l, i) => {
+                    const mov = MOVIMIENTO[l.type] ?? { verbo: "pasó", color: "var(--px-mid)" };
+                    return (
+                      <div
+                        key={l.id}
+                        style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          gap: 12, padding: "11px 0",
+                          borderTop: i === 0 ? "none" : "1px solid var(--px-line2)",
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 500 }}>{l.who}</div>
+                          <div style={{ ...MONO, marginTop: 2 }}>
+                            {fecha(l.recordedAt)} · {hora(l.recordedAt)}
+                            {l.context ? ` · ${l.context}` : ""}
+                          </div>
+                          {/* Con qué permiso entró: el pase que dejaste listo,
+                              el citófono, o la portería. */}
+                          {l.authorizedBy && (
+                            <div style={{ fontSize: 12, color: "var(--px-mid2)", marginTop: 2 }}>
+                              {l.authorizedBy}
+                            </div>
+                          )}
+                        </div>
+                        <span style={{ ...MONO, color: mov.color, flexShrink: 0 }}>
+                          {mov.verbo.toUpperCase()}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* Historial */}
             <section style={CARD}>
               <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 4 }}>
-                Quién vino a buscarte
+                Solicitudes del citófono
               </div>
               <div style={{ fontSize: 13, color: "var(--px-mid)", marginBottom: 14 }}>
-                {recent.length === 0 ? "Todavía sin movimientos" : "Últimas solicitudes de tu departamento"}
+                {recent.length === 0 ? "Todavía sin movimientos" : "Las que respondiste desde acá"}
               </div>
 
               <div style={{ display: "flex", flexDirection: "column" }}>

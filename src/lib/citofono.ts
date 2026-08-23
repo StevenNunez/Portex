@@ -360,3 +360,54 @@ export async function getResidentIdsForProfile(
     };
   });
 }
+
+
+/**
+ * Quién entró y quién salió por este departamento.
+ *
+ * El historial del residente mostraba solo lo que él mismo había respondido
+ * por el citófono. Pero el motor del producto es justamente lo otro: saber
+ * quién llegó a buscarte sin que tengas que estar ahí. Una visita que entró
+ * con un pase creado ayer no aparecía en ninguna parte — tocaban la puerta y
+ * el residente seguía sin saber quién era.
+ *
+ * Sale de la bitácora del edificio, filtrada por unidad: es la misma fuente
+ * que ve la administración, así que no hay dos verdades.
+ */
+export interface LlegadaRow {
+  id: string;
+  type: string;
+  who: string;
+  context: string | null;
+  recordedAt: string;
+  /** Quién dio el permiso: el pase previo, el citófono, la portería. */
+  authorizedBy: string | null;
+}
+
+export async function getLlegadasParaUnidades(
+  buildingId: string,
+  unitCodes: string[],
+  limit = 20
+): Promise<LlegadaRow[]> {
+  if (unitCodes.length === 0) return [];
+
+  const db = createServerClient();
+  const { data, error } = await db
+    .from("access_log")
+    .select("id, type, who, context, recorded_at, authorized_by")
+    .eq("building_id", buildingId)
+    .in("unit", unitCodes)
+    .order("recorded_at", { ascending: false })
+    .limit(limit);
+
+  if (error) return [];
+
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    type: r.type,
+    who: r.who,
+    context: r.context,
+    recordedAt: r.recorded_at,
+    authorizedBy: r.authorized_by,
+  }));
+}

@@ -20,20 +20,39 @@ self.addEventListener("push", (event) => {
   }
 
   const title = data.title || "Portex";
+
+  // Alguien esperando en la puerta no es lo mismo que un aviso de encomienda.
+  // Para eso vibra más fuerte y más rato, y la alerta se queda en pantalla
+  // hasta que la toquen.
+  const urgente = data.requireInteraction === true;
+
   const options = {
     body: data.body || "",
     icon: "/icon-192.png",
     badge: "/icon-192.png",
     tag: data.tag || "portex",
     renotify: true,
-    requireInteraction: data.requireInteraction === true,
-    vibrate: [200, 100, 200, 100, 200],
+    requireInteraction: urgente,
+    // El sonido de una notificación web lo elige el sistema operativo: no se
+    // puede mandar un tono propio. La vibración sí es nuestra, y en un
+    // teléfono en silencio —que es como anda medio mundo— es lo único que se
+    // siente. El timbre de verdad lo toca la app al abrirse (lib/timbre.ts).
+    vibrate: urgente
+      ? [400, 150, 400, 150, 400, 150, 600]
+      : [200, 100, 200],
+    silent: false,
     data: { url: data.url || "/residente" },
   };
 
   event.waitUntil(
     Promise.all([
       self.registration.showNotification(title, options),
+      // El punto rojo en el ícono, como cualquier app. Acá va sin número: el
+      // service worker no sabe cuántas cosas hay esperando. Cuando la persona
+      // abre Portex, la app lo reemplaza por la cuenta exacta y lo limpia al
+      // resolverse. Sirve sobre todo cuando la notificación se deslizó sin
+      // querer: el punto se queda igual.
+      self.navigator.setAppBadge ? self.navigator.setAppBadge().catch(() => {}) : Promise.resolve(),
       // Si la pantalla está abierta —la portería es un kiosco que no se
       // cierra nunca—, además de la alerta se le avisa a la página para que
       // traiga los datos nuevos sin que nadie tenga que recargar.

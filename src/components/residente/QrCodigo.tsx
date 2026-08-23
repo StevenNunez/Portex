@@ -82,7 +82,7 @@ export default function QrCodigo({
     // menú— así que si falla, WhatsApp.
     try {
       if (navigator.share) {
-        const archivo = await comoArchivoPng(path, size, `portex-${code}.png`);
+        const archivo = await comoArchivoPng(path, size, `portex-${code}.png`, code);
         if (archivo && navigator.canShare?.({ files: [archivo] })) {
           await navigator.share({ text: mensaje, files: [archivo] });
           return;
@@ -217,25 +217,82 @@ export default function QrCodigo({
   );
 }
 
-/** Pinta el QR en un canvas y lo devuelve como PNG para poder compartirlo. */
-async function comoArchivoPng(path: string, size: number, nombre: string): Promise<File | null> {
+/** Carga el logo para poder dibujarlo en el canvas. Null si no llega. */
+function cargarLogo(): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    // Mismo origen: el canvas no se contamina y `toBlob` sigue funcionando.
+    img.src = "/logo-portex.png";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+  });
+}
+
+/**
+ * Pinta el pase como una tarjeta y lo devuelve como PNG para compartir.
+ *
+ * Antes se compartía el QR pelado: un cuadrado en blanco y negro que llegaba
+ * por WhatsApp sin decir de dónde venía ni para qué era. Ahora va con la marca
+ * arriba y el código abajo, así el visitante entiende qué recibió y de paso
+ * ve Portex — que es la publicidad más barata que tenemos, porque llega justo
+ * cuando alguien está comprobando que el sistema funciona.
+ */
+async function comoArchivoPng(
+  path: string,
+  size: number,
+  nombre: string,
+  code: string
+): Promise<File | null> {
   try {
     const escala = 12;
     const margen = 4 * escala;
-    const lado = size * escala + margen * 2;
+    const ladoQr = size * escala + margen * 2;
+
+    const cabecera = 150;
+    const pie = 132;
+    const ancho = ladoQr;
+    const alto = cabecera + ladoQr + pie;
 
     const canvas = document.createElement("canvas");
-    canvas.width = lado;
-    canvas.height = lado;
+    canvas.width = ancho;
+    canvas.height = alto;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, lado, lado);
+    ctx.fillRect(0, 0, ancho, alto);
+
+    // ── Marca ──
+    const logo = await cargarLogo();
+    const ladoLogo = 58;
+    const centro = ancho / 2;
+
+    if (logo) {
+      ctx.drawImage(logo, centro - ladoLogo / 2, 34, ladoLogo, ladoLogo);
+    }
+
+    ctx.fillStyle = "#1E1B17";
+    ctx.textAlign = "center";
+    ctx.font = "700 30px 'Inter Tight', Inter, system-ui, sans-serif";
+    ctx.fillText("Portex", centro, logo ? 34 + ladoLogo + 32 : 62);
+
+    // ── QR ──
+    ctx.save();
     ctx.fillStyle = "#000000";
-    ctx.translate(margen, margen);
+    ctx.translate(margen, cabecera + margen);
     ctx.scale(escala, escala);
     ctx.fill(new Path2D(path));
+    ctx.restore();
+
+    // ── El código, para dictarlo cuando la cámara falla ──
+    const baseY = cabecera + ladoQr;
+    ctx.fillStyle = "#9A9690";
+    ctx.font = "500 19px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.fillText("O DICTA ESTE CÓDIGO", centro, baseY + 30);
+
+    ctx.fillStyle = "#1E1B17";
+    ctx.font = "700 42px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.fillText(codigoLegible(code), centro, baseY + 82);
 
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
     if (!blob) return null;
