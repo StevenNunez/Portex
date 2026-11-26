@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import MarcaPortex from "@/components/MarcaPortex";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
+import { mensajeParaPersona } from "@/lib/errores";
 
 /**
  * La pantalla de la invitación.
@@ -55,13 +56,18 @@ const ENVOLTORIO: CSSProperties = {
   padding: "40px 20px",
 };
 
-type Tipo = "invite" | "recovery";
+// `magiclink` es el reenvío de una invitación que nunca se abrió: la cuenta ya
+// existe, así que no se puede volver a emitir un `invite`. Termina en la misma
+// pantalla y con el mismo texto — para la persona es la misma invitación.
+type Tipo = "invite" | "magiclink" | "recovery";
 
 function Contenido() {
   const params = useSearchParams();
 
   const tokenHash = params.get("token_hash");
-  const tipo: Tipo = params.get("type") === "recovery" ? "recovery" : "invite";
+  const tipoCrudo = params.get("type");
+  const tipo: Tipo =
+    tipoCrudo === "recovery" ? "recovery" : tipoCrudo === "magiclink" ? "magiclink" : "invite";
   const email = params.get("email");
   // El callback manda para acá los enlaces que Supabase ya rechazó.
   const errorPrevio = params.get("error");
@@ -86,7 +92,7 @@ function Contenido() {
       setError(
         /expired|invalid/i.test(err.message)
           ? "Este enlace ya se usó o venció."
-          : err.message
+          : mensajeParaPersona(err, "invitacion")
       );
       setCargando(false);
       return;
@@ -170,7 +176,7 @@ function Contenido() {
               textAlign: "center",
             }}
           >
-            <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--px-mid2)" }}>
+            <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--px-mid)" }}>
               TU CUENTA
             </div>
             <div style={{ fontSize: 14, fontWeight: 500, marginTop: 3, wordBreak: "break-all" }}>

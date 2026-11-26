@@ -6,8 +6,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { registerPassEntry } from "@/app/citofono-actions";
 import { entregarEncomienda, lookupScan, type ScanResult } from "@/app/encomiendas-actions";
 import { formatRut } from "@/lib/rut";
-import { useResetOnOpen } from "@/lib/drawer";
+import { useResetOnOpen, atributosDeCajon } from "@/lib/drawer";
 import type { ActivityItem } from "@/lib/mock-data";
+import BotonCerrar from "@/components/BotonCerrar";
 
 /**
  * La pantalla de escanear de portería.
@@ -300,7 +301,7 @@ export default function QrScanDrawer({ open, onClose, onRegistered }: Props) {
   return (
     <>
       <div style={{ position: "fixed", inset: 0, background: "rgba(20,15,8,0.45)", zIndex: 40, opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.2s" }} />
-      <div style={{ ...DRAWER, transform: open ? "translateY(0)" : "translateY(100%)", transition: "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)", boxShadow: "0 -4px 40px -8px rgba(20,15,8,0.25)" }}>
+      <div {...atributosDeCajon(open, "Escanear pase")} style={{ ...DRAWER, transform: open ? "translateY(0)" : "translateY(100%)", transition: "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)", boxShadow: "0 -4px 40px -8px rgba(20,15,8,0.25)" }}>
 
         <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 40, height: 4, borderRadius: 2, background: "var(--px-line)" }} />
 
@@ -315,7 +316,7 @@ export default function QrScanDrawer({ open, onClose, onRegistered }: Props) {
               </div>
             )}
           </div>
-          <button onClick={onClose} style={{ background: "var(--px-paper)", border: "1px solid var(--px-line)", borderRadius: 20, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--px-mid)", fontSize: 18, flexShrink: 0 }}>×</button>
+          <BotonCerrar onClick={onClose} />
         </div>
 
         <div style={{ flex: 1, minHeight: 0, overflow: "auto", paddingBottom: 8 }}>
@@ -391,7 +392,7 @@ export default function QrScanDrawer({ open, onClose, onRegistered }: Props) {
               </div>
 
               <div style={{ ...MONO, margin: "16px 0 8px" }}>¿QUIÉN SE LA LLEVA?</div>
-              <input
+              <input aria-label="Nombre de quien retira"
                 value={quienRetira}
                 onChange={(e) => { setQuienRetira(e.target.value); setError(null); }}
                 onKeyDown={(e) => { if (e.key === "Enter") entregar(); }}
@@ -465,7 +466,7 @@ export default function QrScanDrawer({ open, onClose, onRegistered }: Props) {
 
               <div>
                 <div style={{ ...MONO, marginBottom: 8 }}>O EL CÓDIGO DE 6 DÍGITOS</div>
-                <input
+                <input aria-label="Código de 6 dígitos"
                   value={codigo}
                   onChange={(e) => { setCodigo(e.target.value.replace(/[^0-9]/g, "").slice(0, 6)); setError(null); }}
                   onKeyDown={(e) => { if (e.key === "Enter" && codigo.length === 6) buscar(codigo); }}

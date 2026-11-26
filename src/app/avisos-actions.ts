@@ -9,6 +9,7 @@ import {
   notifyUnit,
   type NoticeKind,
 } from "@/lib/avisos";
+import { fallo } from "@/lib/errores-servidor";
 
 /**
  * Avisos del edificio.
@@ -125,7 +126,7 @@ export async function cancelarAviso(id: string): Promise<{ ok: boolean; error?: 
     .eq("id", id)
     .eq("building_id", ctx.buildingId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("cancelarAviso", error) };
 
   revalidatePath("/admin/avisos");
   revalidatePath("/residente");

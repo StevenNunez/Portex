@@ -33,15 +33,16 @@ ALTER TABLE profiles          ENABLE ROW LEVEL SECURITY;
 
 -- ── 3. Lo único que el navegador sí necesita leer ───────────────
 -- El login lee su propio perfil (role + organization_id) con la anon
--- key para decidir a dónde redirigir. Estas dos políticas vienen de
+-- key para decidir a dónde redirigir. Estas políticas de lectura vienen de
 -- migration_v3.sql y se mantienen: cada usuario ve solo lo suyo.
 DROP POLICY IF EXISTS "users_read_own_profile" ON profiles;
 CREATE POLICY "users_read_own_profile" ON profiles
   FOR SELECT USING (id = auth.uid());
 
+-- Sin política de UPDATE: dejaba que cada usuario se cambiara su propio
+-- `role` y `organization_id`. Los perfiles los escribe solo el servidor
+-- (ver migration_v16_seguridad_perfiles.sql).
 DROP POLICY IF EXISTS "users_update_own_profile" ON profiles;
-CREATE POLICY "users_update_own_profile" ON profiles
-  FOR UPDATE USING (id = auth.uid());
 
 DROP POLICY IF EXISTS "users_read_own_org" ON organizations;
 CREATE POLICY "users_read_own_org" ON organizations
@@ -52,7 +53,7 @@ CREATE POLICY "users_read_own_org" ON organizations
 -- ── 4. Verificación ─────────────────────────────────────────────
 -- Después de correr esto, estas dos consultas deben devolver:
 --   a) rowsecurity = true para las 8 tablas
---   b) políticas SOLO en profiles (2) y organizations (1)
+--   b) políticas SOLO en profiles (1, la de lectura) y organizations (1)
 --
 -- SELECT tablename, rowsecurity FROM pg_tables
 --   WHERE schemaname = 'public' ORDER BY tablename;

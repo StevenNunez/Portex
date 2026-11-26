@@ -94,7 +94,7 @@ export default function OnboardingPage() {
     setLoading(true);
     const result = await createOnboardingOrg({ name: orgName, city });
     if (!result.ok) {
-      setError(result.error ?? "Error al crear el condominio");
+      setError(result.error ?? "No pudimos crear el condominio. Prueba de nuevo.");
       setLoading(false);
       return;
     }
@@ -115,7 +115,7 @@ export default function OnboardingPage() {
       unitsPerTower,
     });
     if (!result.ok) {
-      setError(result.error ?? "Error al crear el edificio");
+      setError(result.error ?? "No pudimos crear el edificio. Prueba de nuevo.");
       setLoading(false);
       return;
     }
@@ -130,7 +130,7 @@ export default function OnboardingPage() {
     if (staffEmail && orgId) {
       const result = await inviteConserje({ email: staffEmail, organizationId: orgId });
       if (!result.ok) {
-        setError(result.error ?? "Error al enviar la invitación");
+        setError(result.error ?? "No pudimos enviar la invitación. Prueba de nuevo.");
         setLoading(false);
         return;
       }
@@ -244,9 +244,9 @@ export default function OnboardingPage() {
           {errorBlock}
           <form onSubmit={handleOrgSubmit}>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
+              <label style={{ display: "block" }}><span style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
                 Nombre del condominio
-              </label>
+              </span>
               <input
                 type="text"
                 required
@@ -254,19 +254,19 @@ export default function OnboardingPage() {
                 onChange={(e) => setOrgName(e.target.value)}
                 placeholder="Ej: Condominio Las Palmas"
                 style={INPUT_STYLE}
-              />
+              /></label>
             </div>
             <div style={{ marginBottom: 28 }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
+              <label style={{ display: "block" }}><span style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
                 Ciudad
-              </label>
+              </span>
               <input
                 type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="Santiago"
                 style={INPUT_STYLE}
-              />
+              /></label>
             </div>
             <button type="submit" disabled={loading} style={{ ...BTN_PRIMARY, opacity: loading ? 0.6 : 1, cursor: loading ? "not-allowed" : "pointer" }}>
               {loading ? "Guardando…" : "Continuar →"}
@@ -293,29 +293,30 @@ export default function OnboardingPage() {
           {errorBlock}
           <form onSubmit={handleBuildingSubmit}>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
+              <label style={{ display: "block" }}><span style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
                 Nombre del edificio
-              </label>
+              </span>
               <input
                 type="text"
                 required
                 value={buildingName}
                 onChange={(e) => setBuildingName(e.target.value)}
                 style={INPUT_STYLE}
-              />
+              /></label>
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 10, color: "var(--px-ink2)" }}>
+              <span id="onboarding-torres" style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 10, color: "var(--px-ink2)" }}>
                 Número de torres
-              </label>
+              </span>
               {/* Quick-select buttons */}
-              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <div role="group" aria-labelledby="onboarding-torres" style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button
                     key={n}
                     type="button"
                     onClick={() => setTowers(n)}
+                    aria-pressed={towers === n}
                     style={{
                       flex: 1,
                       padding: "9px 0",
@@ -346,7 +347,7 @@ export default function OnboardingPage() {
                 >
                   −
                 </button>
-                <input
+                <input aria-label="Número de torres (número exacto)"
                   type="number"
                   min={1}
                   max={99}
@@ -377,9 +378,9 @@ export default function OnboardingPage() {
             </div>
 
             <div style={{ marginBottom: 28 }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
+              <span style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
                 Unidades por torre
-              </label>
+              </span>
               {/* El deslizador sirve para tantear, pero clavar un número exacto
                   con el dedo es imposible: al lado va el campo para escribirlo. */}
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -410,6 +411,7 @@ export default function OnboardingPage() {
                     type="number"
                     min={1}
                     max={999}
+                    aria-label="Unidades por torre (número exacto)"
                     value={unitsPerTower}
                     onChange={(e) => {
                       const v = parseInt(e.target.value, 10);
@@ -485,16 +487,16 @@ export default function OnboardingPage() {
         {errorBlock}
         <form onSubmit={handleStaffSubmit}>
           <div style={{ marginBottom: 28 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
+            <label style={{ display: "block" }}><span style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
               Email del conserje
-            </label>
+            </span>
             <input
               type="email"
               value={staffEmail}
               onChange={(e) => setStaffEmail(e.target.value)}
               placeholder="conserje@ejemplo.com"
               style={INPUT_STYLE}
-            />
+            /></label>
           </div>
 
           <button

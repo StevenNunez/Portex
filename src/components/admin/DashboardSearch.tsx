@@ -24,7 +24,7 @@ export default function DashboardSearch() {
           <circle cx="5.5" cy="5.5" r="4" />
           <path d="M8.5 8.5l3 3" />
         </svg>
-        <input
+        <input aria-label="Buscar residente o departamento"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar residente, depto…"

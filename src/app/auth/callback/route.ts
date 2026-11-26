@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { sendWelcomeEmail } from "@/lib/email";
+import { leerInvitacion } from "@/lib/invitacion-datos";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const orgIdInMeta = user.user_metadata?.organization_id;
+        const orgIdInMeta = leerInvitacion(user)?.organization_id;
         const { data: profile } = await supabase
           .from("profiles")
           .select("organization_id, role")

@@ -6,6 +6,7 @@ import { createServerClient as createServiceClient } from "@/lib/supabase-server
 import { getResidentIdsForProfile } from "@/lib/citofono";
 import { normalizeRut } from "@/lib/rut";
 import type { PetSpecies, Tenancy } from "@/lib/database.types";
+import { fallo } from "@/lib/errores-servidor";
 
 /**
  * El residente mantiene su propia ficha.
@@ -70,7 +71,7 @@ export async function guardarDatosDelDepartamento(input: {
     .eq("id", input.residentId)
     .eq("building_id", mias.buildingId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("guardarDatosDelDepartamento", error) };
 
   revalidatePath("/residente");
   revalidatePath("/admin/residentes");
@@ -98,7 +99,7 @@ export async function agregarIntegrante(input: {
     relationship: input.relationship?.trim() || null,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("agregarIntegrante", error) };
 
   await marcarRevisado(input.residentId);
   revalidatePath("/residente");
@@ -117,7 +118,7 @@ export async function quitarIntegrante(id: string): Promise<Resultado> {
     // El filtro por unidad es lo que impide borrar a alguien de otro depto.
     .in("resident_id", mias.residentIds);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("quitarIntegrante", error) };
 
   revalidatePath("/residente");
   revalidatePath("/admin/residentes");
@@ -144,7 +145,7 @@ export async function agregarMascota(input: {
     notes: input.notes?.trim() || null,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("agregarMascota", error) };
 
   await marcarRevisado(input.residentId);
   revalidatePath("/residente");
@@ -162,7 +163,7 @@ export async function quitarMascota(id: string): Promise<Resultado> {
     .eq("id", id)
     .in("resident_id", mias.residentIds);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("quitarMascota", error) };
 
   revalidatePath("/residente");
   revalidatePath("/admin/residentes");

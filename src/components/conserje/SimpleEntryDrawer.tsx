@@ -6,8 +6,10 @@ import { IconSearch } from "@/components/icons";
 import type { ActivityItem, Resident } from "@/lib/mock-data";
 import type { AccessType } from "@/lib/database.types";
 import { formatRutInput, normalizeRut } from "@/lib/rut";
-import { useFocusOnOpen, useResetOnOpen } from "@/lib/drawer";
+import { useFocusOnOpen, useResetOnOpen, atributosDeCajon } from "@/lib/drawer";
 import { NOTICE_CHIP, NOTICE_KINDS, type NoticeKind } from "@/lib/avisos-tipos";
+import BotonCerrar from "@/components/BotonCerrar";
+import { mensajeParaPersona } from "@/lib/errores";
 
 export type EntryType = "entrega" | "provider";
 
@@ -63,6 +65,9 @@ const DRAWER: React.CSSProperties = {
 };
 
 export default function SimpleEntryDrawer({ type, open, onClose, onRegistered, residents }: Props) {
+  // Si el guardado falla, el conserje tiene que saberlo: antes la promesa
+  // se rechazaba sin que nada en pantalla lo dijera.
+  const [saveError, setSaveError]         = useState<string | null>(null);
   const [step, setStep]                   = useState<"who" | "unit" | "confirm" | "success">("who");
   const [who, setWho]                     = useState("");
   const [reason, setReason]               = useState("");
@@ -91,7 +96,7 @@ export default function SimpleEntryDrawer({ type, open, onClose, onRegistered, r
     () => {
       setStep("who");
       setWho(""); setReason(""); setUnitQuery(""); setRut("");
-      setSelectedResident(null); setSaving(false);
+      setSelectedResident(null); setSaving(false); setSaveError(null);
       // El tipo depende de para qué se abrió el drawer: es el mismo
       // componente para Entrega y Proveedor.
       setAccessType(type === "provider" ? "provider" : "parcel");
@@ -126,6 +131,7 @@ export default function SimpleEntryDrawer({ type, open, onClose, onRegistered, r
 
   async function handleConfirm() {
     setSaving(true);
+    setSaveError(null);
     const contextPrefix = accessType === "delivery" ? "Delivery"
       : accessType === "parcel" ? "Encomienda"
       : "Proveedor";
@@ -158,6 +164,8 @@ export default function SimpleEntryDrawer({ type, open, onClose, onRegistered, r
         by: result.recorded_by ?? "",
       });
       setStep("success");
+    } catch (err) {
+      setSaveError(`No se guardó el registro. ${mensajeParaPersona(err, "registrar entrega o proveedor")}`);
     } finally {
       setSaving(false);
     }
@@ -182,7 +190,7 @@ export default function SimpleEntryDrawer({ type, open, onClose, onRegistered, r
   return (
     <>
       <div style={{ position: "fixed", inset: 0, background: "rgba(20,15,8,0.45)", zIndex: 40, opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.2s" }} />
-      <div style={{ ...DRAWER, transform: open ? "translateY(0)" : "translateY(100%)", transition: "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)", boxShadow: "0 -4px 40px -8px rgba(20,15,8,0.25)" }}>
+      <div {...atributosDeCajon(open, title)} style={{ ...DRAWER, transform: open ? "translateY(0)" : "translateY(100%)", transition: "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)", boxShadow: "0 -4px 40px -8px rgba(20,15,8,0.25)" }}>
 
         {/* Handle */}
         <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 40, height: 4, borderRadius: 2, background: "var(--px-line)" }} />
@@ -192,7 +200,7 @@ export default function SimpleEntryDrawer({ type, open, onClose, onRegistered, r
           {step !== "success" && (
             <>
               <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em" }}>{title}</h2>
-              <button onClick={onClose} style={{ background: "var(--px-paper)", border: "1px solid var(--px-line)", borderRadius: 20, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--px-mid)", fontSize: 18 }}>×</button>
+              <BotonCerrar onClick={onClose} />
             </>
           )}
         </div>
@@ -266,7 +274,7 @@ export default function SimpleEntryDrawer({ type, open, onClose, onRegistered, r
               <div>
                 <div style={MONO}>O ESCRIBE EL NOMBRE</div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input
+                  <input aria-label="Nombre de la empresa o plataforma"
                     ref={inputRef}
                     value={who}
                     onChange={(e) => setWho(e.target.value)}
@@ -291,7 +299,7 @@ export default function SimpleEntryDrawer({ type, open, onClose, onRegistered, r
             <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 14 }}>
               <div>
                 <div style={MONO}>NOMBRE / EMPRESA</div>
-                <input
+                <input aria-label="Nombre o empresa"
                   ref={inputRef}
                   value={who}
                   onChange={(e) => setWho(e.target.value)}
@@ -304,7 +312,7 @@ export default function SimpleEntryDrawer({ type, open, onClose, onRegistered, r
                 {/* El proveedor sube al edificio: entra igual que una
                     visita, así que se identifica igual que una visita. */}
                 <div style={MONO}>RUT DE QUIEN INGRESA</div>
-                <input
+                <input aria-label="RUT de quien ingresa"
                   value={rut}
                   onChange={(e) => setRut(formatRutInput(e.target.value))}
                   placeholder="12.345.678-9"
@@ -314,7 +322,7 @@ export default function SimpleEntryDrawer({ type, open, onClose, onRegistered, r
               </div>
               <div>
                 <div style={MONO}>MOTIVO · OPCIONAL</div>
-                <input
+                <input aria-label="Motivo (opcional)"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="Ej: Reparación caldera"
@@ -479,7 +487,7 @@ export default function SimpleEntryDrawer({ type, open, onClose, onRegistered, r
 
               <div style={{ marginBottom: 16 }}>
                 <div style={MONO}>NOTAS · OPCIONAL</div>
-                <input
+                <input aria-label="Notas (opcional)"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="Ej: Paquete grande, fragil…"
@@ -488,6 +496,11 @@ export default function SimpleEntryDrawer({ type, open, onClose, onRegistered, r
               </div>
 
               <div style={{ flex: 1 }} />
+              {saveError && (
+                <div role="alert" style={{ marginBottom: 12, padding: "11px 14px", borderRadius: 12, background: "oklch(0.96 0.03 25)", border: "1px solid var(--px-alert)", fontSize: 13.5, color: "var(--px-alert)" }}>
+                  {saveError}
+                </div>
+              )}
               <div style={{ display: "flex", gap: 10 }}>
                 <button
                   onClick={() => setStep("who")}

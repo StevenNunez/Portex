@@ -14,6 +14,7 @@ import {
   shiftBounds,
   type ShiftLite,
 } from "@/lib/asistencia";
+import { fallo } from "@/lib/errores-servidor";
 
 /**
  * Marcaje de asistencia del personal.
@@ -193,7 +194,7 @@ export async function closeAttendanceAsAdmin(input: {
     .eq("id", row.id)
     .is("checked_out_at", null);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("closeAttendanceAsAdmin", error) };
 
   await refrescarPantallas();
   return { ok: true };

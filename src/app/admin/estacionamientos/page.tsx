@@ -133,7 +133,7 @@ export default async function EstacionamientosPage() {
                   ) : (
                     <>
                       <div style={{ flex: 1 }}>
-                        <span style={{ fontSize: 13.5, color: inactivo ? "var(--px-mid2)" : "var(--px-ok)", fontWeight: 500 }}>
+                        <span style={{ fontSize: 13.5, color: inactivo ? "var(--px-mid)" : "var(--px-ok)", fontWeight: 500 }}>
                           {inactivo ? "No disponible" : "Libre"}
                         </span>
                         {prestado && (

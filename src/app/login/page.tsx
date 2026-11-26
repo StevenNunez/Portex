@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import MarcaPortex from "@/components/MarcaPortex";
+import { mensajeParaPersona } from "@/lib/errores";
 
 const INPUT_STYLE: CSSProperties = {
   width: "100%",
@@ -48,7 +49,7 @@ function LoginPage() {
   const linkError = searchParams.get("error")
     ? new URLSearchParams(hash.slice(1)).get("error_code") === "otp_expired"
       ? "El link de invitación expiró. Pide al administrador que te envíe una nueva invitación."
-      : "Error al iniciar sesión. Por favor intenta de nuevo."
+      : "No pudimos iniciar sesión. Por favor intenta de nuevo."
     : null;
 
   const error = formError ?? linkError;
@@ -68,7 +69,7 @@ function LoginPage() {
       setFormError(
         signInError.message === "Invalid login credentials"
           ? "Email o contraseña incorrectos."
-          : signInError.message
+          : mensajeParaPersona(signInError, "login")
       );
       setLoading(false);
       return;
@@ -162,7 +163,7 @@ function LoginPage() {
             >
               Email
             </label>
-            <input
+            <input aria-label="Email"
               type="email"
               required
               autoComplete="email"
@@ -185,7 +186,7 @@ function LoginPage() {
             >
               Contraseña
             </label>
-            <input
+            <input aria-label="Contraseña"
               type="password"
               required
               autoComplete="current-password"

@@ -43,7 +43,7 @@ export default function AddPersonalButton() {
     setLoading(false);
 
     if (!res.ok) {
-      setResult({ ok: false, msg: res.error ?? "Error al agregar personal" });
+      setResult({ ok: false, msg: res.error ?? "No se agregó a la persona. Prueba de nuevo." });
       return;
     }
 
@@ -79,51 +79,51 @@ export default function AddPersonalButton() {
       <Drawer open={open} onClose={close} title="Agregar personal" subtitle="STAFF · PERSONAL DEL EDIFICIO">
         <form onSubmit={handleSubmit}>
           <Row>
-            <label style={LABEL}>Nombre completo *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Nombre completo *</span>
             <input required value={name} onChange={(e) => setName(e.target.value)}
-              placeholder="Nombre y apellido" style={FIELD} />
+              placeholder="Nombre y apellido" style={FIELD} /></label>
           </Row>
           {/* El RUT es con lo que esta persona marca su jornada en la tablet
               de portería: sin él, el módulo de asistencia no la reconoce. */}
           <Row>
-            <label style={LABEL}>
+            <label style={{ display: "block" }}><span style={LABEL}>
               RUT{" "}
               <span style={{ fontWeight: 400, color: "var(--px-mid)", fontSize: 11 }}>
                 — con esto marca su asistencia en portería
               </span>
-            </label>
+            </span>
             <input value={rut} onChange={(e) => setRut(formatRutInput(e.target.value))}
               placeholder="Ej: 12.345.678-9" inputMode="numeric" maxLength={12}
-              style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono)" }} />
+              style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono)" }} /></label>
           </Row>
           <Row>
-            <label style={LABEL}>Rol *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Rol *</span>
             <select value={role} onChange={(e) => setRole(e.target.value)}
               style={{ ...FIELD, cursor: "pointer" }}>
               {STAFF_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
+            </select></label>
           </Row>
           <Row>
-            <label style={LABEL}>Teléfono</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Teléfono</span>
             <input value={contact} onChange={(e) => setContact(e.target.value)}
-              placeholder="+56 9 1234 5678" style={FIELD} />
+              placeholder="+56 9 1234 5678" style={FIELD} /></label>
           </Row>
 
           {/* Email = invitación de acceso */}
           <Row>
-            <label style={LABEL}>
+            <label style={{ display: "block" }}><span style={LABEL}>
               Email{" "}
               <span style={{ fontWeight: 400, color: "var(--px-mid)", fontSize: 11 }}>
                 — opcional, envía invitación de acceso
               </span>
-            </label>
+            </span>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="conserje@ejemplo.com"
               style={FIELD}
-            />
+            /></label>
             {email && (
               <div style={{
                 marginTop: 8, padding: "8px 10px", borderRadius: 6,

@@ -131,7 +131,7 @@ export default function ExportAsistenciaCsvButton({
         padding: "9px 14px", fontSize: 13, fontWeight: 500,
         fontFamily: "var(--font-inter-tight), Inter, system-ui, sans-serif",
         cursor: empty ? "not-allowed" : "pointer",
-        color: empty ? "var(--px-mid2)" : done ? "var(--px-ok)" : "var(--px-ink2)",
+        color: empty ? "var(--px-mid)" : done ? "var(--px-ok)" : "var(--px-ink2)",
         opacity: empty ? 0.6 : 1, transition: "color 0.2s ease", whiteSpace: "nowrap",
       }}
     >

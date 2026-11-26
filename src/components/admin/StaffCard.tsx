@@ -29,6 +29,10 @@ export default function StaffCard({ staff }: { staff: StaffRow }) {
 
   const [loading, setLoading] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
+  // Desactivar pide un segundo toque en el mismo botón, no un `confirm()` del
+  // navegador: ese bloquea toda la pantalla y en el teléfono se ve como un
+  // aviso del sistema, no de Portex.
+  const [confirmandoBaja, setConfirmandoBaja] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function reset() {
@@ -40,6 +44,7 @@ export default function StaffCard({ staff }: { staff: StaffRow }) {
     setEmerNombre(staff.emergency_name ?? "");
     setEmerFono(staff.emergency_phone ?? "");
     setError(null);
+    setConfirmandoBaja(false);
   }
 
   function close() { setOpen(false); reset(); }
@@ -62,12 +67,15 @@ export default function StaffCard({ staff }: { staff: StaffRow }) {
       close();
       router.refresh();
     } else {
-      setError(res.error ?? "Error al actualizar");
+      setError(res.error ?? "No se guardaron los cambios. Prueba de nuevo.");
     }
   }
 
   async function handleDelete() {
-    if (!confirm(`¿Estás seguro de eliminar a ${staff.name}? Su historial se mantendrá para auditorías.`)) return;
+    if (!confirmandoBaja) {
+      setConfirmandoBaja(true);
+      return;
+    }
     setLoadingDelete(true);
     const res = await deactivateStaffMember(staff.id);
     if (res.ok) {
@@ -75,14 +83,23 @@ export default function StaffCard({ staff }: { staff: StaffRow }) {
       router.refresh();
     } else {
       setLoadingDelete(false);
-      setError(res.error ?? "Error al eliminar");
+      setError(res.error ?? "No se pudo desactivar. Prueba de nuevo.");
     }
   }
 
   return (
     <>
       <div
+        role="button"
+        tabIndex={0}
+        aria-label={`Editar a ${staff.name}`}
         onClick={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
         style={{
           display: "flex", alignItems: "center", gap: 10,
           padding: "10px 14px", borderRadius: 8,
@@ -120,54 +137,56 @@ export default function StaffCard({ staff }: { staff: StaffRow }) {
       <Drawer open={open} onClose={close} title="Editar personal" subtitle="STAFF · PERSONAL DEL EDIFICIO">
         <form onSubmit={handleUpdate}>
           <Row>
-            <label style={LABEL}>Nombre completo *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Nombre completo *</span>
             <input required value={name} onChange={(e) => setName(e.target.value)}
-              placeholder="Nombre y apellido" style={FIELD} />
+              placeholder="Nombre y apellido" style={FIELD} /></label>
           </Row>
           <Row>
-            <label style={LABEL}>
+            <label style={{ display: "block" }}><span style={LABEL}>
               RUT{" "}
               <span style={{ fontWeight: 400, color: "var(--px-mid)", fontSize: 11 }}>
                 — con esto marca su asistencia en portería
               </span>
-            </label>
+            </span>
             <input value={rut} onChange={(e) => setRut(formatRutInput(e.target.value))}
               placeholder="Ej: 12.345.678-9" inputMode="numeric" maxLength={12}
-              style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono)" }} />
+              style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono)" }} /></label>
           </Row>
           <Row>
-            <label style={LABEL}>Rol *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Rol *</span>
             <select value={role} onChange={(e) => setRole(e.target.value)}
               style={{ ...FIELD, cursor: "pointer" }}>
               {STAFF_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
+            </select></label>
           </Row>
           <Row>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
-                <label style={LABEL}>Teléfono</label>
+                <label style={{ display: "block" }}><span style={LABEL}>Teléfono</span>
                 <input value={contact} onChange={(e) => setContact(e.target.value)}
-                  placeholder="+56 9 1234 5678" style={FIELD} />
+                  placeholder="+56 9 1234 5678" style={FIELD} /></label>
               </div>
               <div>
-                <label style={LABEL}>Correo</label>
+                <label style={{ display: "block" }}><span style={LABEL}>Correo</span>
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                  placeholder="correo@ejemplo.com" style={FIELD} />
+                  placeholder="correo@ejemplo.com" style={FIELD} /></label>
               </div>
             </div>
           </Row>
 
           <Row>
-            <label style={LABEL}>
+            <span style={LABEL}>
               Contacto de emergencia{" "}
               <span style={{ fontWeight: 400, color: "var(--px-mid)", fontSize: 11 }}>
                 — a quién llamar si algo pasa en el turno
               </span>
-            </label>
+            </span>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <input value={emerNombre} onChange={(e) => setEmerNombre(e.target.value)}
+                aria-label="Contacto de emergencia: nombre y parentesco"
                 placeholder="Nombre y parentesco" style={FIELD} />
               <input value={emerFono} onChange={(e) => setEmerFono(e.target.value)}
+                aria-label="Contacto de emergencia: teléfono"
                 placeholder="+56 9 8765 4321" style={FIELD} />
             </div>
           </Row>
@@ -183,16 +202,24 @@ export default function StaffCard({ staff }: { staff: StaffRow }) {
               style={{ ...BTN_PRIMARY, flex: 1, opacity: (loading || loadingDelete) ? 0.6 : 1, cursor: (loading || loadingDelete) ? "not-allowed" : "pointer" }}>
               {loading ? "Guardando…" : "Guardar cambios"}
             </button>
-            <button type="button" onClick={handleDelete} disabled={loading || loadingDelete}
+            <button type="button" onClick={handleDelete} onBlur={() => setConfirmandoBaja(false)}
+              disabled={loading || loadingDelete}
               style={{
                 flex: 1, padding: "11px", borderRadius: 8, fontSize: 14, fontWeight: 600,
                 fontFamily: "var(--font-inter-tight), Inter, system-ui, sans-serif", letterSpacing: "-0.02em",
-                background: "transparent", color: "var(--px-alert)", border: "1px solid var(--px-alert)",
+                background: confirmandoBaja ? "var(--px-alert)" : "transparent",
+                color: confirmandoBaja ? "white" : "var(--px-alert)",
+                border: "1px solid var(--px-alert)",
                 cursor: (loading || loadingDelete) ? "not-allowed" : "pointer", opacity: (loading || loadingDelete) ? 0.6 : 1
               }}>
-              {loadingDelete ? "Eliminando…" : "Eliminar del personal"}
+              {loadingDelete ? "Desactivando…" : confirmandoBaja ? "Confirmar: desactivar" : "Desactivar"}
             </button>
           </div>
+          <p aria-live="polite" style={{ margin: "10px 0 0", fontSize: 12.5, lineHeight: 1.5, color: "var(--px-mid)" }}>
+            {confirmandoBaja
+              ? `${staff.name} deja de aparecer en el personal y no puede marcar asistencia. Su historial de turnos y entradas se mantiene.`
+              : "Desactivar no borra su historial: los turnos y entradas siguen en los reportes."}
+          </p>
         </form>
       </Drawer>
     </>

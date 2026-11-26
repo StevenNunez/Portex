@@ -67,7 +67,7 @@ export default function AddResidenteButton() {
       close();
       router.refresh();
     } else {
-      setError(res.error ?? "Error al agregar residente");
+      setError(res.error ?? "No se agregó el residente. Prueba de nuevo.");
     }
     setLoading(false);
   }
@@ -95,19 +95,19 @@ export default function AddResidenteButton() {
           <Row>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
-                <label style={LABEL}>
+                <label style={{ display: "block" }}><span style={LABEL}>
                   Torre{" "}
                   <span style={{ color: "var(--px-mid)", fontWeight: 400, fontSize: 11 }}>
                     — número o nombre
                   </span>
-                </label>
+                </span>
                 <input
                   value={torre}
                   onChange={(e) => setTorre(e.target.value)}
                   placeholder={formato.torres[0] ?? "A, 1, Chañar 987"}
                   list={formato.torres.length > 0 ? "torres-edificio" : undefined}
                   style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600 }}
-                />
+                /></label>
                 {formato.torres.length > 0 && (
                   <datalist id="torres-edificio">
                     {formato.torres.map((t) => <option key={t} value={t} />)}
@@ -115,14 +115,14 @@ export default function AddResidenteButton() {
                 )}
               </div>
               <div>
-                <label style={LABEL}>N° depto *</label>
+                <label style={{ display: "block" }}><span style={LABEL}>N° depto *</span>
                 <input
                   required
                   value={depto}
                   onChange={(e) => setDepto(e.target.value)}
                   placeholder="1204"
                   style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600, textTransform: "uppercase" }}
-                />
+                /></label>
               </div>
             </div>
 
@@ -135,7 +135,7 @@ export default function AddResidenteButton() {
                 display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
               }}
             >
-              <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--px-mid2)" }}>
+              <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--px-mid)" }}>
                 QUEDA COMO
               </span>
               <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 15, fontWeight: 700 }}>
@@ -150,19 +150,19 @@ export default function AddResidenteButton() {
             )}
           </Row>
           <Row>
-            <label style={LABEL}>Nombre titular *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Nombre titular *</span>
             <input required value={name} onChange={(e) => setName(e.target.value)}
-              placeholder="Nombre y apellido" style={FIELD} />
+              placeholder="Nombre y apellido" style={FIELD} /></label>
           </Row>
           <Row>
-            <label style={LABEL}>
+            <label style={{ display: "block" }}><span style={LABEL}>
               Correo{" "}
               <span style={{ color: "var(--px-mid)", fontWeight: 400, fontSize: 11 }}>
                 — con esto entra a la app
               </span>
-            </label>
+            </span>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              placeholder="correo@ejemplo.com" style={FIELD} />
+              placeholder="correo@ejemplo.com" style={FIELD} /></label>
             <div style={{ fontSize: 11.5, color: "var(--px-mid)", marginTop: 4, lineHeight: 1.5 }}>
               Sin correo queda en el padrón, pero no puede autorizar visitas ni recibir avisos.
               Se puede agregar después.
@@ -171,14 +171,14 @@ export default function AddResidenteButton() {
           <Row>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
-                <label style={LABEL}>RUT</label>
+                <label style={{ display: "block" }}><span style={LABEL}>RUT</span>
                 <input value={rut} onChange={(e) => setRut(e.target.value)}
-                  placeholder="12.345.678-9" style={FIELD} />
+                  placeholder="12.345.678-9" style={FIELD} /></label>
               </div>
               <div>
-                <label style={LABEL}>Contacto</label>
+                <label style={{ display: "block" }}><span style={LABEL}>Contacto</span>
                 <input value={contact} onChange={(e) => setContact(e.target.value)}
-                  placeholder="+56 9 1234 5678" style={FIELD} />
+                  placeholder="+56 9 1234 5678" style={FIELD} /></label>
               </div>
             </div>
           </Row>

@@ -58,3 +58,21 @@ export function useFocusOnOpen(open: boolean, ref: RefObject<HTMLInputElement | 
     return () => clearTimeout(id);
   }, [open, ref]);
 }
+
+/**
+ * Lo que un cajón le dice al lector de pantalla y al teclado.
+ *
+ * Abierto, es un diálogo con nombre. Cerrado, queda `inert`: los cajones
+ * cerrados siguen en la página (solo se esconden bajo el borde), y sin esto
+ * el Tab del teclado caía en campos invisibles de cajones que nadie abrió.
+ *
+ *   <div {...atributosDeCajon(open, "Visita")} style={…}>
+ */
+export function atributosDeCajon(open: boolean, titulo: string) {
+  return {
+    role: "dialog" as const,
+    "aria-modal": open,
+    "aria-label": titulo,
+    inert: !open,
+  };
+}

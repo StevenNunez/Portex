@@ -78,13 +78,14 @@ export default function AddParkingSpotButton() {
       <Drawer open={open} onClose={close} title="Nuevo estacionamiento">
         <form onSubmit={handleSubmit}>
           <Row>
-            <label style={LABEL}>¿De quién es? *</label>
-            <div style={{ display: "flex", gap: 8 }}>
+            <span id="estacionamiento-tipo" style={LABEL}>¿De quién es? *</span>
+            <div role="group" aria-labelledby="estacionamiento-tipo" style={{ display: "flex", gap: 8 }}>
               {KINDS.map((k) => (
                 <button
                   key={k.value}
                   type="button"
                   onClick={() => setKind(k.value)}
+                  aria-pressed={kind === k.value}
                   style={{
                     flex: 1, padding: "10px 8px", borderRadius: 8,
                     fontFamily: "var(--font-inter-tight), Inter, system-ui, sans-serif",
@@ -102,7 +103,7 @@ export default function AddParkingSpotButton() {
           </Row>
 
           <Row>
-            <label style={LABEL}>Número o código *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Número o código *</span>
             <input
               required
               autoFocus
@@ -110,19 +111,19 @@ export default function AddParkingSpotButton() {
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="Ej: E-12, 45, V-3"
               style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600, letterSpacing: "0.04em" }}
-            />
+            /></label>
           </Row>
 
           {kind === "residente" && (
             <Row>
-              <label style={LABEL}>Departamento al que pertenece *</label>
+              <label style={{ display: "block" }}><span style={LABEL}>Departamento al que pertenece *</span>
               <input
                 required
                 value={unitCode}
                 onChange={(e) => setUnitCode(e.target.value.toUpperCase())}
                 placeholder="Ej: 1204, A-501"
                 style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600, letterSpacing: "0.04em" }}
-              />
+              /></label>
               <div style={{ fontSize: 11.5, color: "var(--px-mid)", marginTop: 6, lineHeight: 1.5 }}>
                 Tiene que coincidir con el código de unidad del padrón: es así como
                 la portería sabe cuál ofrecerle a la visita del 1204.
@@ -131,13 +132,13 @@ export default function AddParkingSpotButton() {
           )}
 
           <Row>
-            <label style={LABEL}>Nota</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Nota</span>
             <input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Ej: subterráneo -2, junto al ascensor"
               style={FIELD}
-            />
+            /></label>
           </Row>
 
           {error && (

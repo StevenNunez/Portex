@@ -87,7 +87,7 @@ export function EditarEdificio({
         <>
           <Fila>
             <Etiqueta>Nombre del edificio</Etiqueta>
-            <input
+            <input aria-label="Nombre del edificio"
               value={datos.name}
               onChange={(e) => setDatos({ ...datos, name: e.target.value })}
               style={CAMPO}
@@ -95,7 +95,7 @@ export function EditarEdificio({
           </Fila>
           <Fila>
             <Etiqueta>Unidades totales</Etiqueta>
-            <input
+            <input aria-label="Unidades totales"
               value={datos.unitsTotal}
               onChange={(e) => setDatos({ ...datos, unitsTotal: e.target.value.replace(/[^0-9]/g, "") })}
               inputMode="numeric"
@@ -105,7 +105,7 @@ export function EditarEdificio({
           </Fila>
           <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 16 }}>
             <Etiqueta>Organización</Etiqueta>
-            <input
+            <input aria-label="Organización"
               value={datos.orgName}
               onChange={(e) => setDatos({ ...datos, orgName: e.target.value })}
               style={CAMPO}
@@ -213,7 +213,7 @@ export function EditarMiCuenta({ nombre, rol }: { nombre: string; rol: string })
       <Fila>
         <Etiqueta>Nombre</Etiqueta>
         {editando ? (
-          <input value={name} onChange={(e) => setName(e.target.value)} style={CAMPO} />
+          <input aria-label="Nombre" value={name} onChange={(e) => setName(e.target.value)} style={CAMPO} />
         ) : (
           <span style={{ fontSize: 13, fontWeight: 500 }}>{name}</span>
         )}

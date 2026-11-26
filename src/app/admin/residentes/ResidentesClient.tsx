@@ -229,7 +229,7 @@ export default function ResidentesClient({
       closeEdit();
       router.refresh();
     } else {
-      setEditError(res.error ?? "Error al guardar");
+      setEditError(res.error ?? "No se guardaron los cambios. Prueba de nuevo.");
     }
     setEditLoading(false);
   }
@@ -337,7 +337,7 @@ export default function ResidentesClient({
             <circle cx="5.5" cy="5.5" r="4" />
             <path d="M8.5 8.5l3 3" />
           </svg>
-          <input
+          <input aria-label="Buscar residentes"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Nombre, RUT, unidad, contacto…"
@@ -638,7 +638,7 @@ export default function ResidentesClient({
                   }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--px-mid2)" }}>
+                    <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--px-mid)" }}>
                       SE ENVÍA A
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 500, marginTop: 2, wordBreak: "break-all" }}>
@@ -660,7 +660,7 @@ export default function ResidentesClient({
                 </div>
               ) : (
                 <div style={{ marginBottom: 16 }}>
-                  <label style={LABEL}>Correo del residente</label>
+                  <label style={{ display: "block" }}><span style={LABEL}>Correo del residente</span>
                   <input
                     required
                     type="email"
@@ -669,7 +669,7 @@ export default function ResidentesClient({
                     placeholder="correo@ejemplo.com"
                     style={FIELD}
                     autoFocus
-                  />
+                  /></label>
                 </div>
               )}
 
@@ -693,7 +693,7 @@ export default function ResidentesClient({
           <form onSubmit={handleSave}>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={LABEL}>Código de unidad</label>
+              <label style={{ display: "block" }}><span style={LABEL}>Código de unidad</span>
               {/* Sin `toUpperCase`: hay torres con nombre —"Chañar 987"— y
                   forzar mayúsculas las dejaba gritando y, peor, guardaba un
                   código distinto al que armó el formulario de alta. */}
@@ -701,24 +701,25 @@ export default function ResidentesClient({
                 required value={editUnit}
                 onChange={(e) => setEditUnit(e.target.value)}
                 style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600, letterSpacing: "0.04em" }}
-              />
+              /></label>
               <div style={{ fontSize: 11, color: "var(--px-mid)", marginTop: 4 }}>
                 Cambiar la unidad refleja una mudanza o reasignación.
               </div>
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={LABEL}>Nombre titular</label>
-              <input required value={editName} onChange={(e) => setEditName(e.target.value)} style={FIELD} />
+              <label style={{ display: "block" }}><span style={LABEL}>Nombre titular</span>
+              <input required value={editName} onChange={(e) => setEditName(e.target.value)} style={FIELD} /></label>
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={LABEL}>Tipo</label>
-              <div style={{ display: "flex", gap: 8 }}>
+              <span id="editar-residente-tipo" style={LABEL}>Tipo</span>
+              <div role="group" aria-labelledby="editar-residente-tipo" style={{ display: "flex", gap: 8 }}>
                 {(["Propietario", "Arrendatario", ""] as Tipo[]).map((t) => (
                   <button
                     key={t} type="button"
                     onClick={() => setEditTipo(t)}
+                    aria-pressed={editTipo === t}
                     style={{
                       flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 12, fontWeight: 500,
                       fontFamily: "var(--font-inter-tight), Inter, system-ui, sans-serif",
@@ -737,29 +738,29 @@ export default function ResidentesClient({
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={LABEL}>RUT</label>
-                  <input value={editRut} onChange={(e) => setEditRut(e.target.value)} placeholder="12.345.678-9" style={FIELD} />
+                  <label style={{ display: "block" }}><span style={LABEL}>RUT</span>
+                  <input value={editRut} onChange={(e) => setEditRut(e.target.value)} placeholder="12.345.678-9" style={FIELD} /></label>
                 </div>
                 <div>
-                  <label style={LABEL}>Contacto</label>
-                  <input value={editContact} onChange={(e) => setEditContact(e.target.value)} placeholder="+56 9 1234 5678" style={FIELD} />
+                  <label style={{ display: "block" }}><span style={LABEL}>Contacto</span>
+                  <input value={editContact} onChange={(e) => setEditContact(e.target.value)} placeholder="+56 9 1234 5678" style={FIELD} /></label>
                 </div>
               </div>
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={LABEL}>
+              <label style={{ display: "block" }}><span style={LABEL}>
                 Correo{" "}
                 <span style={{ color: "var(--px-mid)", fontWeight: 400, fontSize: 11 }}>
                   — con esto entra a la app
                 </span>
-              </label>
+              </span>
               <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)}
-                placeholder="correo@ejemplo.com" style={FIELD} />
+                placeholder="correo@ejemplo.com" style={FIELD} /></label>
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={LABEL}>Estado</label>
+              <span id="editar-residente-estado" style={LABEL}>Estado</span>
               {/* Se explica acá porque "pendiente" e "inactivo" no significan
                   nada por sí solos. Un residente nuevo entra activo sin que
                   nadie elija: esto es para el día que alguien se muda. */}
@@ -767,11 +768,12 @@ export default function ResidentesClient({
                 Activo: vive acá. Pendiente: aún no confirma. Inactivo: se mudó — deja de
                 aparecer en portería, pero su historial se conserva.
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div role="group" aria-labelledby="editar-residente-estado" style={{ display: "flex", gap: 8 }}>
                 {(["activo", "pendiente", "inactivo"] as Status[]).map((s) => (
                   <button
                     key={s} type="button"
                     onClick={() => setEditStatus(s)}
+                    aria-pressed={editStatus === s}
                     style={{
                       flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 12, fontWeight: 500,
                       fontFamily: "var(--font-inter-tight), Inter, system-ui, sans-serif",

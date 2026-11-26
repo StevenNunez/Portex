@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode, CSSProperties } from "react";
+import { useEffect, type ReactNode, type CSSProperties } from "react";
+import { atributosDeCajon } from "@/lib/drawer";
 
 interface DrawerProps {
   open: boolean;
@@ -47,6 +48,18 @@ export const BTN_PRIMARY: CSSProperties = {
 };
 
 export default function Drawer({ open, onClose, title, subtitle, children, width = 440 }: DrawerProps) {
+  // El cajón del panel se cierra con Escape, igual que al tocar afuera. (Los
+  // de portería no: ahí un toque o una tecla perdida borraría una visita a
+  // medio registrar.)
+  useEffect(() => {
+    if (!open) return;
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", alTeclear);
+    return () => window.removeEventListener("keydown", alTeclear);
+  }, [open, onClose]);
+
   return (
     <>
       {/* Backdrop */}
@@ -63,6 +76,7 @@ export default function Drawer({ open, onClose, title, subtitle, children, width
 
       {/* Panel */}
       <div
+        {...atributosDeCajon(open, title)}
         className="px-drawer"
         style={{
           position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 50,
@@ -94,14 +108,18 @@ export default function Drawer({ open, onClose, title, subtitle, children, width
             )}
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Cerrar"
+            title="Cerrar"
             style={{
               background: "none", border: "none", cursor: "pointer",
-              color: "var(--px-mid)", padding: "6px", borderRadius: 6,
+              color: "var(--px-ink2)", padding: 0, borderRadius: 8,
+              width: 44, height: 44, marginRight: -10,
               display: "flex", alignItems: "center", justifyContent: "center",
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M3 3l10 10M13 3L3 13" />
             </svg>
           </button>

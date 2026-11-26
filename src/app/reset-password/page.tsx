@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { createSupabaseBrowser } from "@/lib/supabase-browser";
+import { pedirRecuperacion } from "@/app/auth-actions";
 import MarcaPortex from "@/components/MarcaPortex";
 
 const INPUT_STYLE: CSSProperties = {
@@ -30,13 +30,13 @@ export default function ResetPasswordPage() {
     setError(null);
     setLoading(true);
 
-    const supabase = createSupabaseBrowser();
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/update-password`,
-    });
+    // El correo lo manda la app, no Supabase: la plantilla vive en el repo y
+    // el enlace va a /invitacion?token_hash=…, que no gasta el token cuando el
+    // antivirus del correo lo abre para revisarlo.
+    const res = await pedirRecuperacion({ email });
 
-    if (resetError) {
-      setError(resetError.message);
+    if (!res.ok) {
+      setError(res.error ?? "No pudimos enviar el correo. Intenta de nuevo.");
       setLoading(false);
       return;
     }
@@ -65,8 +65,8 @@ export default function ResetPasswordPage() {
             Revisa tu email
           </h2>
           <p style={{ fontSize: 14, color: "var(--px-mid)", lineHeight: 1.6, margin: 0 }}>
-            Enviamos un enlace para restablecer tu contraseña a{" "}
-            <strong style={{ color: "var(--px-ink)" }}>{email}</strong>.
+            Si <strong style={{ color: "var(--px-ink)" }}>{email}</strong> tiene una
+            cuenta en Portex, le acaba de llegar un enlace para crear una contraseña nueva.
           </p>
         </div>
         <p style={{ marginTop: 24, fontSize: 14, color: "var(--px-mid)" }}>
@@ -98,9 +98,9 @@ export default function ResetPasswordPage() {
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 24 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
+            <label style={{ display: "block" }}><span style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
               Email
-            </label>
+            </span>
             <input
               type="email"
               required
@@ -109,7 +109,7 @@ export default function ResetPasswordPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="correo@ejemplo.com"
               style={INPUT_STYLE}
-            />
+            /></label>
           </div>
 
           <button

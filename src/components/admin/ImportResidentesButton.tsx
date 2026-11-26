@@ -9,6 +9,7 @@ import { readSheet } from "read-excel-file/browser";
 import Drawer, { BTN_PRIMARY } from "./Drawer";
 import { importResidents } from "@/app/actions";
 import { csvWithBom, parseCsv, toText } from "@/lib/csv";
+import { mensajeParaPersona } from "@/lib/errores";
 
 type Status = "activo" | "pendiente" | "inactivo";
 type Tipo = "Propietario" | "Arrendatario" | "";
@@ -226,7 +227,7 @@ export default function ImportResidentesButton() {
       const parsed = await parseFile(file);
       setRows(parsed);
     } catch (e) {
-      setParseError(e instanceof Error ? e.message : "Error al procesar el archivo");
+      setParseError(mensajeParaPersona(e, "importar residentes"));
     }
   }
 
@@ -250,7 +251,7 @@ export default function ImportResidentesButton() {
       setResult({ inserted: res.inserted, conCorreo: res.conCorreo });
       router.refresh();
     } else {
-      setActionError(res.error ?? "Error al importar");
+      setActionError(res.error ?? "No se importó el archivo. Prueba de nuevo.");
     }
     setLoading(false);
   }

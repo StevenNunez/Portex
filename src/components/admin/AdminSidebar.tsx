@@ -201,7 +201,7 @@ export default function AdminSidebar({ buildingName, unitsTotal, staffName, role
                 key={"s" + i}
                 style={{
                   fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5,
-                  letterSpacing: "0.1em", color: "var(--px-mid2)",
+                  letterSpacing: "0.1em", color: "var(--px-mid)",
                   padding: i === 0 ? "4px 12px 6px" : "14px 12px 6px",
                 }}
               >
@@ -220,7 +220,7 @@ export default function AdminSidebar({ buildingName, unitsTotal, staffName, role
                 style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                   padding: "7px 12px", borderRadius: 7,
-                  color: "var(--px-mid2)", fontSize: 13,
+                  color: "var(--px-mid)", fontSize: 13,
                 }}
               >
                 <span>{n.label}</span>

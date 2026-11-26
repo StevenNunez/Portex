@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { entregarEncomienda } from "@/app/encomiendas-actions";
-import { useResetOnOpen } from "@/lib/drawer";
+import { useResetOnOpen, atributosDeCajon } from "@/lib/drawer";
 import type { PendingParcel } from "@/lib/mock-data";
+import BotonCerrar from "@/components/BotonCerrar";
 
 interface Props {
   open: boolean;
@@ -89,7 +90,7 @@ export default function EncomiendaDrawer({ open, onClose, parcels, onDelivered }
   return (
     <>
       <div style={{ position: "fixed", inset: 0, background: "rgba(20,15,8,0.45)", zIndex: 40, opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.2s" }} />
-      <div style={{
+      <div {...atributosDeCajon(open, "Encomiendas")} style={{
         position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
         background: "var(--px-bone)", borderRadius: "24px 24px 0 0",
         padding: "0 clamp(16px, 5vw, 28px) calc(36px + env(safe-area-inset-bottom, 0px))", maxHeight: "80dvh",
@@ -108,7 +109,7 @@ export default function EncomiendaDrawer({ open, onClose, parcels, onDelivered }
               {parcels.length === 0 ? "Sin pendientes" : `${parcels.length} sin retirar`}
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "var(--px-paper)", border: "1px solid var(--px-line)", borderRadius: 20, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--px-mid)", fontSize: 18 }}>×</button>
+          <BotonCerrar onClick={onClose} />
         </div>
 
         {/* List */}
@@ -187,7 +188,7 @@ export default function EncomiendaDrawer({ open, onClose, parcels, onDelivered }
                         ¿QUIÉN RETIRA?
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
-                        <input
+                        <input aria-label="Quién retira la encomienda"
                           ref={inputRef}
                           value={recipient}
                           onChange={(e) => setRecipient(e.target.value)}
@@ -204,7 +205,7 @@ export default function EncomiendaDrawer({ open, onClose, parcels, onDelivered }
                             llegó al teléfono del departamento. Acá no se muestra
                             —solo se comprueba— porque si el conserje pudiera
                             leerlo, verificarlo no probaría nada. */}
-                        <input
+                        <input aria-label="Código de retiro"
                           value={code}
                           onChange={(e) => { setCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6)); setError(null); }}
                           onKeyDown={(e) => { if (e.key === "Enter") handleConfirm(p); }}

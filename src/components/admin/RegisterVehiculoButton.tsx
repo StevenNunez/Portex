@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Drawer, { FIELD, LABEL, BTN_PRIMARY } from "./Drawer";
 import { registerEntry } from "@/app/actions";
+import { mensajeParaPersona } from "@/lib/errores";
 
 function Row({ children }: { children: React.ReactNode }) {
   return <div style={{ marginBottom: 16 }}>{children}</div>;
@@ -40,7 +41,7 @@ export default function RegisterVehiculoButton() {
       close();
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al registrar");
+      setError(mensajeParaPersona(err, "registrar vehiculo (admin)"));
     }
     setLoading(false);
   }
@@ -63,26 +64,26 @@ export default function RegisterVehiculoButton() {
       <Drawer open={open} onClose={close} title="Registrar vehículo" subtitle="TIPO · ACCESO VEHICULAR">
         <form onSubmit={handleSubmit}>
           <Row>
-            <label style={LABEL}>Patente *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Patente *</span>
             <input required value={plate}
               onChange={(e) => setPlate(e.target.value.toUpperCase())}
               placeholder="Ej: ABCD12" maxLength={8}
-              style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }} />
+              style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }} /></label>
           </Row>
           <Row>
-            <label style={LABEL}>Conductor / Propietario *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Conductor / Propietario *</span>
             <input required value={who} onChange={(e) => setWho(e.target.value)}
-              placeholder="Nombre de la persona" style={FIELD} />
+              placeholder="Nombre de la persona" style={FIELD} /></label>
           </Row>
           <Row>
-            <label style={LABEL}>Unidad</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Unidad</span>
             <input value={unit} onChange={(e) => setUnit(e.target.value)}
-              placeholder="Ej: 302, A-801" style={FIELD} />
+              placeholder="Ej: 302, A-801" style={FIELD} /></label>
           </Row>
           <Row>
-            <label style={LABEL}>Observación</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Observación</span>
             <input value={context} onChange={(e) => setContext(e.target.value)}
-              placeholder="Ej: Visita, Proveedor, Mudanza" style={FIELD} />
+              placeholder="Ej: Visita, Proveedor, Mudanza" style={FIELD} /></label>
           </Row>
 
           {error && (

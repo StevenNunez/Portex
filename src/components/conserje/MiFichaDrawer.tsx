@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { guardarMiFicha, verMiFicha } from "@/app/actions";
+import { atributosDeCajon } from "@/lib/drawer";
 
 /**
  * Los datos del propio trabajador, mantenidos por él.
@@ -136,6 +137,7 @@ export default function MiFichaDrawer({
       />
 
       <div
+        {...atributosDeCajon(open, "Mis datos")}
         style={{
           position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
           background: "var(--px-bone)",
@@ -168,7 +170,8 @@ export default function MiFichaDrawer({
             aria-label="Cerrar"
             style={{
               background: "none", border: "none", cursor: "pointer", color: "var(--px-mid)",
-              padding: 8, borderRadius: 8, flexShrink: 0,
+              padding: 12, borderRadius: 8, flexShrink: 0,
+              minWidth: 44, minHeight: 44,
             }}
           >
             <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -260,7 +263,7 @@ export default function MiFichaDrawer({
                 {guardando ? "Guardando…" : guardado ? "✓ Guardado" : "Guardar mis datos"}
               </button>
 
-              <p style={{ margin: "14px 0 0", fontSize: 12.5, color: "var(--px-mid2)", lineHeight: 1.6 }}>
+              <p style={{ margin: "14px 0 0", fontSize: 12.5, color: "var(--px-mid)", lineHeight: 1.6 }}>
                 Tu nombre, tu RUT y tu rol los mantiene la administración: son los que
                 identifican tus turnos y tu asistencia.
               </p>

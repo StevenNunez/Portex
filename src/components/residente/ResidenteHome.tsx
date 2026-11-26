@@ -540,9 +540,9 @@ export default function ResidenteHome({
                   onClick={() => setShowPassForm((v) => !v)}
                   style={{
                     flexShrink: 0,
-                    width: 38,
-                    height: 38,
-                    borderRadius: 19,
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
                     background: showPassForm ? "var(--px-paper)" : "var(--px-ink)",
                     color: showPassForm ? "var(--px-ink)" : "var(--px-bone)",
                     border: showPassForm ? "1px solid var(--px-line)" : "none",
@@ -558,7 +558,7 @@ export default function ResidenteHome({
 
               {showPassForm && (
                 <form onSubmit={guardarPase} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <input
+                  <input aria-label="Nombre de tu visita"
                     value={passName}
                     onChange={(e) => setPassName(e.target.value)}
                     placeholder="¿Quién viene? Ej: Juan Pérez"
@@ -567,7 +567,7 @@ export default function ResidenteHome({
                   />
                   {/* El RUT no es un dato más: es con lo que el conserje lo
                       identifica cuando llega. Sin eso, el pase no sirve. */}
-                  <input
+                  <input aria-label="RUT de tu visita"
                     value={passRut}
                     onChange={(e) => setPassRut(formatRutInput(e.target.value))}
                     placeholder="RUT de tu visita"
@@ -575,7 +575,7 @@ export default function ResidenteHome({
                     maxLength={12}
                     style={{ ...INPUT, fontFamily: "var(--font-jetbrains-mono)", letterSpacing: "0.03em" }}
                   />
-                  <input
+                  <input aria-label="Nota para el conserje (opcional)"
                     value={passNote}
                     onChange={(e) => setPassNote(e.target.value)}
                     placeholder="Nota para el conserje (opcional)"
@@ -716,7 +716,7 @@ export default function ResidenteHome({
                           {/* Con qué permiso entró: el pase que dejaste listo,
                               el citófono, o la portería. */}
                           {l.authorizedBy && (
-                            <div style={{ fontSize: 12, color: "var(--px-mid2)", marginTop: 2 }}>
+                            <div style={{ fontSize: 12, color: "var(--px-mid)", marginTop: 2 }}>
                               {l.authorizedBy}
                             </div>
                           )}

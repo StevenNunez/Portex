@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { aprobarSolicitud, rechazarSolicitud } from "@/app/autoregistro-actions";
 import type { SolicitudPendiente } from "@/lib/autoregistro-tipos";
+import { atributosDeCajon } from "@/lib/drawer";
 
 /**
  * Los vecinos que escanearon el cartel y esperan que la portería confirme.
@@ -91,6 +92,7 @@ export default function SolicitudesDrawer({
       />
 
       <div
+        {...atributosDeCajon(open, "Vecinos que piden acceso")}
         style={{
           position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
           background: "var(--px-bone)",
@@ -119,7 +121,8 @@ export default function SolicitudesDrawer({
             aria-label="Cerrar"
             style={{
               background: "none", border: "none", cursor: "pointer", color: "var(--px-mid)",
-              padding: 8, borderRadius: 8, flexShrink: 0,
+              padding: 12, borderRadius: 8, flexShrink: 0,
+              minWidth: 44, minHeight: 44,
             }}
           >
             <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">

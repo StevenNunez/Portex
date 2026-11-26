@@ -68,7 +68,7 @@ export default function AddTurnoButton({ staffList }: { staffList: StaffRow[] })
       close();
       router.refresh();
     } else {
-      setError(res.error ?? "Error al crear el turno");
+      setError(res.error ?? "No se creó el turno. Prueba de nuevo.");
     }
     setLoading(false);
   }
@@ -98,26 +98,27 @@ export default function AddTurnoButton({ staffList }: { staffList: StaffRow[] })
         ) : (
           <form onSubmit={handleSubmit}>
             <Row>
-              <label style={LABEL}>Conserje *</label>
+              <label style={{ display: "block" }}><span style={LABEL}>Conserje *</span>
               <select value={staffId} onChange={(e) => setStaffId(e.target.value)}
                 style={{ ...FIELD, cursor: "pointer" }}>
                 {staffList.map((s) => (
                   <option key={s.id} value={s.id}>{s.name} — {s.role}</option>
                 ))}
-              </select>
+              </select></label>
             </Row>
             <Row>
-              <label style={LABEL}>Fecha *</label>
+              <label style={{ display: "block" }}><span style={LABEL}>Fecha *</span>
               <input type="date" required value={date}
-                onChange={(e) => setDate(e.target.value)} style={FIELD} />
+                onChange={(e) => setDate(e.target.value)} style={FIELD} /></label>
             </Row>
             <Row>
-              <label style={LABEL}>Tipo de turno *</label>
-              <div style={{ display: "flex", gap: 8 }}>
+              <span id="turno-tipo" style={LABEL}>Tipo de turno *</span>
+              <div role="group" aria-labelledby="turno-tipo" style={{ display: "flex", gap: 8 }}>
                 {(["mañana", "tarde", "noche"] as ShiftType[]).map((t) => (
                   <button
                     key={t} type="button"
                     onClick={() => handleTypeChange(t)}
+                    aria-pressed={type === t}
                     style={{
                       flex: 1, padding: "9px 0",
                       borderRadius: 8, fontSize: 13, fontWeight: 500,
@@ -137,21 +138,21 @@ export default function AddTurnoButton({ staffList }: { staffList: StaffRow[] })
             <Row>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={LABEL}>Hora inicio *</label>
+                  <label style={{ display: "block" }}><span style={LABEL}>Hora inicio *</span>
                   <input type="time" required value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)} style={FIELD} />
+                    onChange={(e) => setStartTime(e.target.value)} style={FIELD} /></label>
                 </div>
                 <div>
-                  <label style={LABEL}>Hora fin *</label>
+                  <label style={{ display: "block" }}><span style={LABEL}>Hora fin *</span>
                   <input type="time" required value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)} style={FIELD} />
+                    onChange={(e) => setEndTime(e.target.value)} style={FIELD} /></label>
                 </div>
               </div>
             </Row>
             <Row>
-              <label style={LABEL}>Ubicación / Torre</label>
+              <label style={{ display: "block" }}><span style={LABEL}>Ubicación / Torre</span>
               <input value={location} onChange={(e) => setLocation(e.target.value)}
-                placeholder="Ej: Torre A, Portería principal" style={FIELD} />
+                placeholder="Ej: Torre A, Portería principal" style={FIELD} /></label>
             </Row>
 
             {error && (

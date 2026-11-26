@@ -31,13 +31,11 @@ ALTER TABLE buildings ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES o
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, role, full_name, organization_id)
-  VALUES (
-    NEW.id,
-    COALESCE(NEW.raw_user_meta_data ->> 'role', 'admin'),
-    NEW.raw_user_meta_data ->> 'full_name',
-    (NEW.raw_user_meta_data ->> 'organization_id')::uuid
-  );
+  -- El rol y la organización NO salen de raw_user_meta_data: eso lo manda
+  -- el navegador. Ver migration_v16_seguridad_perfiles.sql.
+  INSERT INTO public.profiles (id, full_name)
+  VALUES (NEW.id, NEW.raw_user_meta_data ->> 'full_name')
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
@@ -58,11 +56,12 @@ CREATE POLICY "users_read_own_org" ON organizations
     id IN (SELECT organization_id FROM profiles WHERE id = auth.uid())
   );
 
--- Profiles: users can read and update their own profile
+-- Profiles: users can read their own profile
 DROP POLICY IF EXISTS "users_read_own_profile" ON profiles;
 CREATE POLICY "users_read_own_profile" ON profiles
   FOR SELECT USING (id = auth.uid());
 
+-- Sin política de UPDATE: dejaba que cada usuario se cambiara su propio
+-- `role` y `organization_id`. Los perfiles los escribe solo el servidor
+-- (ver migration_v16_seguridad_perfiles.sql).
 DROP POLICY IF EXISTS "users_update_own_profile" ON profiles;
-CREATE POLICY "users_update_own_profile" ON profiles
-  FOR UPDATE USING (id = auth.uid());

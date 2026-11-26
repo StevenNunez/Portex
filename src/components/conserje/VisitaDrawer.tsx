@@ -14,7 +14,7 @@ import {
 import { lookupVisitorByRut, getParkingForUnit, lookupPlate, type RutLookupResult } from "@/app/actions";
 import type { ParkingAvailability } from "@/lib/parking-types";
 import { formatRutInput, isValidRut, normalizeRut } from "@/lib/rut";
-import { useFocusOnOpen, useResetOnOpen } from "@/lib/drawer";
+import { useFocusOnOpen, useResetOnOpen, atributosDeCajon } from "@/lib/drawer";
 import type { RequestStatus } from "@/lib/database.types";
 
 const MOTIVOS = ["Visita", "Servicio", "Trabajo"] as const;
@@ -24,6 +24,8 @@ function fechaCorta(iso: string) {
   return new Date(iso).toLocaleDateString("es-CL", { timeZone: "America/Santiago", day: "numeric", month: "short" });
 }
 import { IconSearch } from "@/components/icons";
+import { mensajeParaPersona } from "@/lib/errores";
+import BotonCerrar from "@/components/BotonCerrar";
 
 function initials(name: string) {
   return name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
@@ -206,6 +208,9 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
   const [waitStatus, setWaitStatus] = useState<RequestStatus | null>(null);
   const [respondedBy, setRespondedBy] = useState<string | null>(null);
   const [waitError, setWaitError]   = useState<string | null>(null);
+  // Si el guardado falla, el conserje tiene que saberlo: antes quedaba solo en
+  // la consola y la visita pasaba sin quedar en la bitácora.
+  const [saveError, setSaveError]   = useState<string | null>(null);
   const [remaining, setRemaining]   = useState(0);
 
   // ── Estacionamiento ─────────────────────────────────────────────
@@ -262,6 +267,15 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
 
   const showPlateSection    = showDeptSection && !!selectedUnit;
   const canRegister         = rutValido && name.trim().length >= 2 && !!selectedUnit;
+  // El botón apagado tiene que decir por qué: si no, el conserje aprieta y
+  // aprieta sin saber qué le falta llenar.
+  const queFalta = !rutValido
+    ? "Falta el RUT de la visita"
+    : name.trim().length < 2
+      ? "Falta el nombre de la visita"
+      : !selectedUnit
+        ? "Falta elegir el departamento al que va"
+        : null;
   const hayPatente          = plate.trim().length >= 4;
 
   const passCheck = selectedUnit && name.trim().length >= 2 ? passEncontrado : null;
@@ -273,7 +287,7 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
   useResetOnOpen(open, () => {
     setName(""); setRut(""); setUnitQuery(""); setSelectedUnit(null); setPlate("");
     setSaving(false); setSuccess(false); savingRef.current = false;
-    setPassCheck(null); setWaitError(null); setAuthorizedBy("");
+    setPassCheck(null); setWaitError(null); setSaveError(null); setAuthorizedBy("");
     setKnown(null); setConfirmedKnown(false); setMotivo("Visita");
     setParking(null); setParkingAccepted(true); setParkingResult(null);
     setAutoResidente(null);
@@ -503,6 +517,7 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
     if (!canRegister || savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
+    setSaveError(null);
     try {
       const context = motivo === "Visita" ? "Visita" : motivo;
       const result = await registerEntry({
@@ -535,7 +550,9 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
       setAuthorizedBy(opts?.authorizedBy ?? "");
       setSuccess(true);
     } catch (err) {
-      console.error("Error al guardar:", err);
+      setSaveError(
+        `No se guardó el ingreso. ${mensajeParaPersona(err, "registrar visita")}`
+      );
     } finally {
       setSaving(false);
       savingRef.current = false;
@@ -602,6 +619,7 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
         style={{ position: "fixed", inset: 0, background: "rgba(20,15,8,0.45)", zIndex: 40, opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.2s" }}
       />
       <div
+        {...atributosDeCajon(open, "Registrar visita")}
         style={{
           position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
           background: "var(--px-bone)", borderRadius: "24px 24px 0 0",
@@ -622,11 +640,7 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
               <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em" }}>
                 {rutValido ? (showKnownCard ? "¿Es esta persona?" : "¿Quién entra?") : "Su RUT, por favor"}
               </h2>
-              <button
-                onClick={onClose}
-                disabled={saving}
-                style={{ background: "var(--px-paper)", border: "1px solid var(--px-line)", borderRadius: 20, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: saving ? "default" : "pointer", color: "var(--px-mid)", fontSize: 18, opacity: saving ? 0.4 : 1 }}
-              >×</button>
+              <BotonCerrar onClick={onClose} disabled={saving} />
             </>
           )}
         </div>
@@ -704,7 +718,7 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
             {/* ─ RUT: la identidad, y el atajo de todo el flujo ─ */}
             <div style={{ marginBottom: showKnownCard ? 14 : 16 }}>
               <div style={LABEL}>RUT DEL VISITANTE</div>
-              <input
+              <input aria-label="RUT del visitante"
                 ref={rutRef}
                 type="text"
                 inputMode="numeric"
@@ -806,7 +820,7 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
               <div style={LABEL}>
                 {known?.found ? "NOMBRE DEL VISITANTE" : "NO ESTÁ REGISTRADO · NOMBRE COMPLETO"}
               </div>
-              <input
+              <input aria-label="Nombre completo de la visita"
                 ref={nameRef}
                 type="text"
                 value={name}
@@ -900,7 +914,7 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
                     {/* Campo de búsqueda */}
                     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "white", borderRadius: 12, border: "1px solid var(--px-line)" }}>
                       <IconSearch size={18} style={{ color: "var(--px-mid)", flexShrink: 0 }} />
-                      <input
+                      <input aria-label="Departamento o nombre del residente"
                         type="text"
                         value={unitQuery}
                         onChange={(e) => setUnitQuery(e.target.value)}
@@ -947,7 +961,7 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
             {showPlateSection && (
               <div style={{ marginBottom: 16 }}>
                 <div style={LABEL}>PATENTE · OPCIONAL</div>
-                <input
+                <input aria-label="Patente (opcional)"
                   type="text"
                   value={plate}
                   onChange={(e) => setPlate(e.target.value.toUpperCase())}
@@ -1082,9 +1096,9 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
               </div>
             )}
 
-            {waitError && (
-              <div style={{ marginBottom: 12, padding: "11px 14px", borderRadius: 12, background: "oklch(0.96 0.03 25)", border: "1px solid var(--px-alert)", fontSize: 13.5, color: "var(--px-alert)" }}>
-                {waitError}
+            {(waitError || saveError) && (
+              <div role="alert" style={{ marginBottom: 12, padding: "11px 14px", borderRadius: 12, background: "oklch(0.96 0.03 25)", border: "1px solid var(--px-alert)", fontSize: 13.5, color: "var(--px-alert)" }}>
+                {saveError ?? waitError}
               </div>
             )}
 
@@ -1093,6 +1107,7 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
               <button
                 onClick={handleRegisterWithPass}
                 disabled={!canRegister || saving}
+                aria-describedby={queFalta ? "visita-que-falta" : undefined}
                 style={{
                   width: "100%", padding: "16px",
                   background: canRegister && !saving ? "var(--px-ok)" : "var(--px-line)",
@@ -1108,6 +1123,7 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
               <button
                 onClick={handleAskAuthorization}
                 disabled={!canRegister || saving}
+                aria-describedby={queFalta ? "visita-que-falta" : undefined}
                 style={{
                   width: "100%", padding: "16px",
                   background: canRegister && !saving ? "var(--px-ink)" : "var(--px-line)",
@@ -1123,6 +1139,7 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
               <button
                 onClick={() => handleRegister()}
                 disabled={!canRegister || saving}
+                aria-describedby={queFalta ? "visita-que-falta" : undefined}
                 style={{
                   width: "100%", padding: "16px",
                   background: canRegister && !saving ? "var(--px-ink)" : "var(--px-line)",
@@ -1134,6 +1151,12 @@ export default function VisitaDrawer({ open, onClose, onRegistered, residents, f
               >
                 {saving ? "Guardando…" : "Registrar ingreso"}
               </button>
+            )}
+
+            {queFalta && !saving && (
+              <div id="visita-que-falta" aria-live="polite" style={{ marginTop: 10, fontSize: 14, color: "var(--px-ink2)", textAlign: "center" }}>
+                {queFalta}
+              </div>
             )}
 
             {selectedUnit && passCheck && !passCheck.canRequest && !passCheck.hasPass && (

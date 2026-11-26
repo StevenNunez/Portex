@@ -5,7 +5,8 @@ import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import { markAttendanceByRut, type MarcaResult } from "@/app/asistencia-actions";
 import { formatRutInput, normalizeRut } from "@/lib/rut";
-import { useFocusOnOpen, useResetOnOpen } from "@/lib/drawer";
+import { useFocusOnOpen, useResetOnOpen, atributosDeCajon } from "@/lib/drawer";
+import BotonCerrar from "@/components/BotonCerrar";
 
 /**
  * Marcaje de asistencia del personal.
@@ -115,7 +116,7 @@ export default function AsistenciaDrawer({ open, onClose, present, onMarked }: P
   return (
     <>
       <div style={{ position: "fixed", inset: 0, background: "rgba(20,15,8,0.45)", zIndex: 40, opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.2s" }} />
-      <div style={{ ...DRAWER, transform: open ? "translateY(0)" : "translateY(100%)", transition: "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)", boxShadow: "0 -4px 40px -8px rgba(20,15,8,0.25)" }}>
+      <div {...atributosDeCajon(open, "Marcar asistencia")} style={{ ...DRAWER, transform: open ? "translateY(0)" : "translateY(100%)", transition: "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)", boxShadow: "0 -4px 40px -8px rgba(20,15,8,0.25)" }}>
 
         <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 40, height: 4, borderRadius: 2, background: "var(--px-line)" }} />
 
@@ -130,7 +131,7 @@ export default function AsistenciaDrawer({ open, onClose, present, onMarked }: P
               </div>
             )}
           </div>
-          <button onClick={onClose} style={{ background: "var(--px-paper)", border: "1px solid var(--px-line)", borderRadius: 20, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--px-mid)", fontSize: 18, flexShrink: 0 }}>×</button>
+          <BotonCerrar onClick={onClose} />
         </div>
 
         <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
@@ -201,7 +202,7 @@ export default function AsistenciaDrawer({ open, onClose, present, onMarked }: P
               {/* ── RUT + teclado ─────────────────────────────────── */}
               <div>
                 <div style={{ ...MONO, marginBottom: 8 }}>SU RUT, POR FAVOR</div>
-                <input
+                <input aria-label="RUT del trabajador"
                   ref={inputRef}
                   value={rut}
                   onChange={(e) => { setRut(formatRutInput(e.target.value)); setError(null); }}

@@ -40,7 +40,7 @@ export default function AddVisitanteButton() {
       close();
       router.refresh();
     } else {
-      setError(res.error ?? "Error al agregar visitante");
+      setError(res.error ?? "No se agregó el visitante. Prueba de nuevo.");
     }
     setLoading(false);
   }
@@ -63,28 +63,28 @@ export default function AddVisitanteButton() {
       <Drawer open={open} onClose={close} title="Agregar visitante frecuente">
         <form onSubmit={handleSubmit}>
           <Row>
-            <label style={LABEL}>Nombre completo *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Nombre completo *</span>
             <input required value={name} onChange={(e) => setName(e.target.value)}
-              placeholder="Nombre y apellido" style={FIELD} />
+              placeholder="Nombre y apellido" style={FIELD} /></label>
           </Row>
           <Row>
-            <label style={LABEL}>RUT *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>RUT *</span>
             <input required value={rut} onChange={(e) => setRut(formatRutInput(e.target.value))}
               placeholder="Ej: 12.345.678-9" maxLength={12}
-              style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", letterSpacing: "0.03em" }} />
+              style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono), monospace", letterSpacing: "0.03em" }} /></label>
             <div style={{ fontSize: 11, color: "var(--px-mid)", marginTop: 4 }}>
               Es la llave con la que la portería lo reconoce al llegar.
             </div>
           </Row>
           <Row>
-            <label style={LABEL}>Unidad habitual</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Unidad habitual</span>
             <input value={defaultUnit} onChange={(e) => setDefaultUnit(e.target.value)}
-              placeholder="Ej: 402, B-201" style={FIELD} />
+              placeholder="Ej: 402, B-201" style={FIELD} /></label>
           </Row>
           <Row>
-            <label style={LABEL}>Motivo de visita</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Motivo de visita</span>
             <input value={reason} onChange={(e) => setReason(e.target.value)}
-              placeholder="Ej: Familiar, Empleada doméstica, Proveedor" style={FIELD} />
+              placeholder="Ej: Familiar, Empleada doméstica, Proveedor" style={FIELD} /></label>
           </Row>
 
           {error && (

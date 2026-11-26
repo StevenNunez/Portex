@@ -5,8 +5,10 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
+import { leerInvitacion } from "@/lib/invitacion-datos";
 import { syncInvitedProfile, datosDeInvitacion } from "@/app/actions";
 import MarcaPortex from "@/components/MarcaPortex";
+import { mensajeParaPersona } from "@/lib/errores";
 
 const INPUT: CSSProperties = {
   width: "100%",
@@ -34,7 +36,7 @@ export default function UpdatePasswordPage() {
   const [authUser, setAuthUser] = useState<User | null>(null);
 
   // Derived from authUser
-  const isInvited  = Boolean(authUser?.user_metadata?.organization_id);
+  const isInvited  = Boolean(leerInvitacion(authUser));
   const nameFromMeta = authUser?.user_metadata?.full_name as string | undefined;
 
   const [fullName,         setFullName]         = useState("");
@@ -129,7 +131,7 @@ export default function UpdatePasswordPage() {
     });
 
     if (pwErr) {
-      setError(pwErr.message);
+      setError(mensajeParaPersona(pwErr, "crear contraseña"));
       setLoading(false);
       return;
     }
@@ -137,13 +139,13 @@ export default function UpdatePasswordPage() {
     // 2. Sync profile via service-role (bypasses RLS)
     if (isInvited) {
       // La organización y el rol los resuelve el servidor desde el
-      // user_metadata de la invitación; acá solo va el nombre.
+      // app_metadata de la invitación; acá solo va el nombre.
       const sync = await syncInvitedProfile({
         fullName: needsName && fullName ? fullName : undefined,
       });
 
       if (!sync.ok) {
-        setError(sync.error ?? "Error al configurar tu perfil. Intenta de nuevo.");
+        setError(sync.error ?? "No pudimos terminar de configurar tu cuenta. Intenta de nuevo.");
         setLoading(false);
         return;
       }
@@ -222,7 +224,7 @@ export default function UpdatePasswordPage() {
                 }}
               >
                 <div>
-                  <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--px-mid2)" }}>
+                  <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--px-mid)" }}>
                     TU CUENTA
                   </div>
                   <div style={{ fontSize: 13.5, fontWeight: 500, marginTop: 2, wordBreak: "break-all" }}>
@@ -231,7 +233,7 @@ export default function UpdatePasswordPage() {
                 </div>
                 {(contexto.buildingName || contexto.orgName) && (
                   <div>
-                    <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--px-mid2)" }}>
+                    <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--px-mid)" }}>
                       EDIFICIO
                     </div>
                     <div style={{ fontSize: 13.5, fontWeight: 500, marginTop: 2 }}>
@@ -251,9 +253,9 @@ export default function UpdatePasswordPage() {
             <form onSubmit={handleSubmit}>
               {needsName && (
                 <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
+                  <label style={{ display: "block" }}><span style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
                     Nombre completo
-                  </label>
+                  </span>
                   <input
                     type="text"
                     required
@@ -261,14 +263,14 @@ export default function UpdatePasswordPage() {
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder={nameFromMeta ?? "Ej: Juan Pérez"}
                     style={INPUT}
-                  />
+                  /></label>
                 </div>
               )}
 
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
+                <label style={{ display: "block" }}><span style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
                   Nueva contraseña
-                </label>
+                </span>
                 <input
                   type="password"
                   required
@@ -276,13 +278,13 @@ export default function UpdatePasswordPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   style={INPUT}
-                />
+                /></label>
               </div>
 
               <div style={{ marginBottom: 24 }}>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
+                <label style={{ display: "block" }}><span style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "var(--px-ink2)" }}>
                   Confirmar contraseña
-                </label>
+                </span>
                 <input
                   type="password"
                   required
@@ -290,7 +292,7 @@ export default function UpdatePasswordPage() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
                   style={INPUT}
-                />
+                /></label>
               </div>
 
               <button

@@ -4,6 +4,7 @@ import { createServerClient } from "./supabase-server";
 import { normalizeRut } from "./rut";
 import { minutesFromTime, startOfDayUtc, todayInChile } from "./fecha";
 import type { AttendanceSource } from "./database.types";
+import { fallo } from "@/lib/errores-servidor";
 
 /**
  * Asistencia del personal.
@@ -390,7 +391,7 @@ export async function abrirJornada(input: {
     if (error.code === "23505") {
       return { ok: false, error: "Tu entrada ya estaba registrada." };
     }
-    return { ok: false, error: error.message };
+    return { ok: false, error: await fallo("abrirJornada", error) };
   }
 
   // El turno programado pasa a estar corriendo.
@@ -475,7 +476,7 @@ export async function cerrarJornada(input: {
     .eq("id", input.abierta.id)
     .is("checked_out_at", null);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("cerrarJornada", error) };
 
   if (shift) {
     await db()

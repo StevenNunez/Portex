@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Drawer, { FIELD, LABEL, BTN_PRIMARY } from "./Drawer";
 import { registerEntry } from "@/app/actions";
+import { mensajeParaPersona } from "@/lib/errores";
 
 function Row({ children }: { children: React.ReactNode }) {
   return <div style={{ marginBottom: 16 }}>{children}</div>;
@@ -35,7 +36,7 @@ export default function RegisterEncomiendaButton() {
       close();
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al registrar");
+      setError(mensajeParaPersona(err, "registrar encomienda (admin)"));
     }
     setLoading(false);
   }
@@ -58,24 +59,24 @@ export default function RegisterEncomiendaButton() {
       <Drawer open={open} onClose={close} title="Registrar encomienda" subtitle="TIPO · ENCOMIENDA / PAQUETE">
         <form onSubmit={handleSubmit}>
           <Row>
-            <label style={LABEL}>Unidad destino *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Unidad destino *</span>
             <input required value={unit} onChange={(e) => setUnit(e.target.value)}
-              placeholder="Ej: 504, B-302" style={FIELD} />
+              placeholder="Ej: 504, B-302" style={FIELD} /></label>
           </Row>
           <Row>
-            <label style={LABEL}>¿Quién la trajo? *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>¿Quién la trajo? *</span>
             <input required value={who} onChange={(e) => setWho(e.target.value)}
-              placeholder="Ej: Chilexpress, Amazon, Blue Express" style={FIELD} />
+              placeholder="Ej: Chilexpress, Amazon, Blue Express" style={FIELD} /></label>
           </Row>
           <Row>
-            <label style={LABEL}>
+            <label style={{ display: "block" }}><span style={LABEL}>
               Descripción{" "}
               <span style={{ fontWeight: 400, color: "var(--px-mid)", fontSize: 11 }}>
                 — opcional, la ve el residente
               </span>
-            </label>
+            </span>
             <input value={context} onChange={(e) => setContext(e.target.value)}
-              placeholder="Ej: caja grande, sobre acolchado" style={FIELD} />
+              placeholder="Ej: caja grande, sobre acolchado" style={FIELD} /></label>
           </Row>
           <div style={{ fontSize: 11.5, color: "var(--px-mid)", margin: "-6px 0 16px", lineHeight: 1.5 }}>
             Al residente le llega el aviso con su código de retiro.

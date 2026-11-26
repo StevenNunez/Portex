@@ -32,7 +32,7 @@ export default function InviteStaffForm({ organizationId }: { organizationId: st
     setResult(
       res.ok
         ? { ok: true,  msg: `Invitación enviada a ${email}` }
-        : { ok: false, msg: res.error ?? "Error al enviar la invitación" }
+        : { ok: false, msg: res.error ?? "No pudimos enviar la invitación. Prueba de nuevo." }
     );
 
     if (res.ok) {
@@ -45,14 +45,14 @@ export default function InviteStaffForm({ organizationId }: { organizationId: st
   return (
     <form onSubmit={handleSubmit}>
       <div style={{ display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <input
+        <input aria-label="Nombre de la persona (opcional)"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nombre (opcional)"
           style={{ ...INPUT, minWidth: 160 }}
         />
-        <input
+        <input aria-label="Correo de la persona"
           type="email"
           required
           value={email}

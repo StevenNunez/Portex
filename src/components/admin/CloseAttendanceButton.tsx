@@ -81,14 +81,14 @@ export default function CloseAttendanceButton({
       >
         <form onSubmit={guardar}>
           <div style={{ marginBottom: 16 }}>
-            <label style={LABEL}>Hora de salida *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Hora de salida *</span>
             <input
               required
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
               style={{ ...FIELD, fontFamily: "var(--font-jetbrains-mono)" }}
-            />
+            /></label>
             <div style={{ fontSize: 11.5, color: "var(--px-mid)", marginTop: 6, lineHeight: 1.5 }}>
               Si la hora es anterior a la de entrada, se entiende como la madrugada
               siguiente: es el turno de noche.
@@ -96,13 +96,13 @@ export default function CloseAttendanceButton({
           </div>
 
           <div style={{ marginBottom: 16 }}>
-            <label style={LABEL}>Nota</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Nota</span>
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Se fue sin marcar"
               style={FIELD}
-            />
+            /></label>
           </div>
 
           {error && (

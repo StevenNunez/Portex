@@ -16,7 +16,8 @@ import {
   releaseSession,
 } from "@/lib/parking";
 import type { ParkingAvailability } from "@/lib/parking-types";
-import { appUrl } from "@/lib/app-url";
+import { invitarPorCorreo } from "@/lib/invitacion-correo";
+import { leerInvitacion } from "@/lib/invitacion-datos";
 import { startOfTodayUtc, todayInChile } from "@/lib/fecha";
 import { NOTICE_LABEL, notifyBuilding, notifyUnit, type NoticeKind } from "@/lib/avisos";
 import { marcarAvisada, registrarEncomienda } from "@/lib/encomiendas";
@@ -28,6 +29,7 @@ import {
 } from "@/lib/asistencia";
 import { createServerClient as createServiceClient } from "@/lib/supabase-server";
 import type { AccessType, Database, ParkingKind } from "@/lib/database.types";
+import { fallo } from "@/lib/errores-servidor";
 
 // ── Shared helpers ───────────────────────────────────────────────
 
@@ -108,6 +110,18 @@ async function getAdminContext() {
 
 const NO_ADMIN = "Solo el administrador puede hacer esto";
 
+/**
+ * Contexto para lo que hace la portería: registrar ingresos y consultar
+ * patentes, RUT y estacionamientos. Lo puede usar el conserje y el
+ * administrador (que también registra desde su panel), nunca un residente:
+ * esas consultas dicen quién visita a quién y de quién es cada auto.
+ */
+async function getPorteriaContext() {
+  const ctx = await getSessionContext();
+  if (!ctx || (ctx.role !== "conserje" && ctx.role !== "admin")) return null;
+  return ctx;
+}
+
 // ── Access log ───────────────────────────────────────────────────
 
 export interface RegisterEntryInput {
@@ -169,8 +183,9 @@ export interface RegisterEntryResult {
 export async function registerEntry(
   input: RegisterEntryInput
 ): Promise<RegisterEntryResult> {
-  const ctx = await getSessionContext();
-  if (!ctx?.buildingId) throw new Error("Edificio no encontrado");
+  const ctx = await getPorteriaContext();
+  if (!ctx) throw new Error("Solo la portería puede registrar ingresos");
+  if (!ctx.buildingId) throw new Error("Edificio no encontrado");
 
   const rut = input.rut ? normalizeRut(input.rut) : undefined;
 
@@ -398,7 +413,7 @@ export async function lookupPlate(plate: string): Promise<{
   unitCode: string;
   residentName: string;
 } | null> {
-  const ctx = await getSessionContext();
+  const ctx = await getPorteriaContext();
   if (!ctx?.buildingId) return null;
   return findVehicleByPlate(ctx.buildingId, plate);
 }
@@ -410,7 +425,7 @@ export async function lookupPlate(plate: string): Promise<{
 export async function getParkingForUnit(
   unitCode?: string | null
 ): Promise<ParkingAvailability | null> {
-  const ctx = await getSessionContext();
+  const ctx = await getPorteriaContext();
   if (!ctx?.buildingId) return null;
   const availability = await getAvailability(ctx.buildingId, unitCode);
 
@@ -451,7 +466,7 @@ export interface RutLookupResult {
  * conserje solo confirma. Es el atajo que hace el registro de 7 segundos.
  */
 export async function lookupVisitorByRut(rut: string): Promise<RutLookupResult> {
-  const ctx = await getSessionContext();
+  const ctx = await getPorteriaContext();
   if (!ctx?.buildingId) return { found: false };
 
   // Un pase vigente resuelve la visita completa con solo el RUT.
@@ -526,7 +541,7 @@ export async function addResident(input: {
     tags: [],
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("addResident", error) };
   return { ok: true };
 }
 
@@ -569,7 +584,7 @@ export async function addParkingSpot(input: {
 
   if (error) {
     if (error.code === "23505") return { ok: false, error: `Ya existe el estacionamiento ${code}` };
-    return { ok: false, error: error.message };
+    return { ok: false, error: await fallo("addParkingSpot", error) };
   }
   revalidatePath("/admin/estacionamientos");
   return { ok: true };
@@ -590,7 +605,7 @@ export async function setParkingSpotActive(
     .eq("id", spotId)
     .eq("building_id", ctx.buildingId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("setParkingSpotActive", error) };
   revalidatePath("/admin/estacionamientos");
   return { ok: true };
 }
@@ -652,7 +667,7 @@ export async function updateResident(
     .eq("id", id)
     .eq("building_id", ctx.buildingId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("updateResident", error) };
   return { ok: true };
 }
 
@@ -685,7 +700,7 @@ export async function addFrequentVisitor(input: {
     last_unit: input.defaultUnit ?? null,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("addFrequentVisitor", error) };
   return { ok: true };
 }
 
@@ -713,23 +728,26 @@ export async function addStaffMember(input: {
     active: true,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("addStaffMember", error) };
 
   // If email provided, also send auth invite so they can log in
   if (input.email) {
     if (ctx.organizationId) {
-      const { error: inviteErr } = await db.auth.admin.inviteUserByEmail(input.email, {
-        data: {
+      const res = await invitarPorCorreo({
+        email: input.email,
+        nombre: input.name,
+        invitacion: {
           role: "conserje",
           organization_id: ctx.organizationId,
           full_name: input.name,
         },
-        redirectTo: `${appUrl()}/auth/callback?next=/update-password`,
       });
-      if (inviteErr) {
-        return { ok: true, invited: false, error: `Personal agregado, pero error al invitar: ${inviteErr.message}` };
+      if (res.estado === "error") {
+        return { ok: true, invited: false, error: `Personal agregado, pero error al invitar: ${res.error}` };
       }
-      return { ok: true, invited: true };
+      // "Ya tiene cuenta" no es un fallo: el trabajador entra con la que usa
+      // hoy, y `syncInvitedProfile` adopta esta ficha por el correo.
+      return { ok: true, invited: res.estado !== "ya-tiene-cuenta" };
     }
   }
 
@@ -767,7 +785,7 @@ export async function updateStaffMember(
     .eq("id", id)
     .eq("building_id", ctx.buildingId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("updateStaffMember", error) };
   revalidatePath("/admin/personal");
   return { ok: true };
 }
@@ -887,7 +905,7 @@ export async function guardarMiFicha(input: {
     })
     .eq("profile_id", user.id);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("guardarMiFicha", error) };
   revalidatePath("/conserje");
   revalidatePath("/admin/personal");
   return { ok: true };
@@ -905,7 +923,7 @@ export async function deactivateStaffMember(id: string): Promise<{ ok: boolean; 
     .eq("id", id)
     .eq("building_id", ctx.buildingId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("deactivateStaffMember", error) };
   return { ok: true };
 }
 
@@ -935,7 +953,7 @@ export async function addShift(input: {
     status: "programado",
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("addShift", error) };
   return { ok: true };
 }
 
@@ -1000,7 +1018,7 @@ export async function importResidents(
 
   if (toInsert.length > 0) {
     const { error, count } = await db.from("residents").insert(toInsert).select();
-    if (error) return { ok: false, inserted: 0, conCorreo: 0, error: error.message };
+    if (error) return { ok: false, inserted: 0, conCorreo: 0, error: await fallo("importResidents", error) };
     inserted += count ?? toInsert.length;
   }
 
@@ -1068,7 +1086,7 @@ export async function createOnboardingOrg(input: {
     .single();
 
   if (orgErr || !org) {
-    return { ok: false, error: orgErr?.message ?? "Error al crear la organización" };
+    return { ok: false, error: await fallo("createOnboardingOrg", orgErr ?? new Error("Sin organización creada")) };
   }
 
   await db
@@ -1114,7 +1132,7 @@ export async function createOnboardingBuilding(input: {
     .single();
 
   if (error || !building) {
-    return { ok: false, error: error?.message ?? "Error al crear el edificio" };
+    return { ok: false, error: await fallo("createOnboardingBuilding", error ?? new Error("Sin edificio creado")) };
   }
 
   return { ok: true, buildingId: building.id };
@@ -1143,16 +1161,17 @@ export async function inviteConserje(input: {
     .limit(1)
     .maybeSingle();
 
-  const { error } = await db.auth.admin.inviteUserByEmail(input.email, {
-    data: {
+  const res = await invitarPorCorreo({
+    email: input.email,
+    nombre: input.name,
+    invitacion: {
       role: "conserje",
       organization_id: organizationId,
       ...(input.name ? { full_name: input.name } : {}),
     },
-    redirectTo: `${appUrl()}/auth/callback?next=/update-password`,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (res.estado === "error") return { ok: false, error: res.error };
 
   // Create the staff record so they appear in the personnel list immediately.
   // El correo va guardado: es lo que permite reconocer esta ficha cuando la
@@ -1170,11 +1189,6 @@ export async function inviteConserje(input: {
   return { ok: true };
 }
 
-// Se llama desde update-password, cuando el conserje invitado define su
-// contraseña. La organización y el rol salen del user_metadata que grabó
-// la invitación — leído acá en el servidor, no recibido del cliente:
-// aceptarlos del cliente permitía que cualquier usuario se declarara
-// admin de la organización que quisiera.
 /**
  * Lo que hay que mostrarle a alguien que está terminando de crear su cuenta:
  * con qué correo entra y a qué edificio queda ligado. Es la única forma de
@@ -1190,9 +1204,9 @@ export async function datosDeInvitacion(): Promise<{
   const user = await getSessionUser();
   if (!user) return { email: null, orgName: null, buildingName: null, role: null };
 
-  const meta = user.user_metadata ?? {};
-  const organizationId = typeof meta.organization_id === "string" ? meta.organization_id : null;
-  const role = typeof meta.role === "string" ? meta.role : null;
+  const invitacion = leerInvitacion(user);
+  const organizationId = invitacion?.organization_id ?? null;
+  const role = invitacion?.role ?? null;
 
   if (!organizationId) {
     return { email: user.email ?? null, orgName: null, buildingName: null, role };
@@ -1212,23 +1226,26 @@ export async function datosDeInvitacion(): Promise<{
   };
 }
 
+// Se llama desde update-password, cuando la persona invitada define su
+// contraseña. La organización y el rol salen de `app_metadata.invitacion`,
+// que grabó la clave de servicio al invitar (`lib/auth-admin.ts`). Nunca de
+// `user_metadata`: ese lo reescribe el propio usuario con
+// `supabase.auth.updateUser`, y leerlo de ahí dejaba que cualquiera se
+// declarara admin de la organización que quisiera.
 export async function syncInvitedProfile(input: {
   fullName?: string;
 }): Promise<{ ok: boolean; error?: string }> {
   const user = await getSessionUser();
   if (!user) return { ok: false, error: "No autenticado" };
 
-  const meta = user.user_metadata ?? {};
-  const organizationId = typeof meta.organization_id === "string" ? meta.organization_id : null;
-  const role = meta.role === "admin" || meta.role === "conserje" || meta.role === "residente"
-    ? meta.role
-    : "conserje";
-
-  if (!organizationId) {
+  const invitacion = leerInvitacion(user);
+  if (!invitacion) {
     return { ok: false, error: "Tu invitación no tiene una organización asociada. Pide una nueva al administrador." };
   }
+  const organizationId = invitacion.organization_id;
+  const role = invitacion.role;
 
-  const fullName = input.fullName?.trim() || (typeof meta.full_name === "string" ? meta.full_name : undefined);
+  const fullName = input.fullName?.trim() || invitacion.full_name;
 
   const db = createServiceClient();
 
@@ -1239,7 +1256,7 @@ export async function syncInvitedProfile(input: {
     ...(fullName ? { full_name: fullName } : {}),
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("syncInvitedProfile", error) };
 
   // Conserje invitado: su ficha de personal pasa a tener dueño. Sin esto la
   // ficha queda huérfana —el administrador la mantiene a mano y el trabajador
@@ -1265,7 +1282,7 @@ export async function syncInvitedProfile(input: {
 
   // Residente invitado: dejarlo ligado a su unidad, que es lo que le
   // permite aprobar visitas.
-  const residentId = typeof meta.resident_id === "string" ? meta.resident_id : null;
+  const residentId = invitacion.resident_id ?? null;
   if (role === "residente" && residentId) {
     const { data: resident } = await db
       .from("residents")

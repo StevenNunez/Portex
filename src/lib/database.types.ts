@@ -148,7 +148,21 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      /** migration_v17: anota un error y dice si es nuevo (o volvió tras resolverse). */
+      registrar_error: {
+        Args: {
+          p_huella: string;
+          p_origen: "navegador" | "servidor";
+          p_donde: string;
+          p_mensaje: string;
+          p_detalle: Record<string, unknown>;
+          p_usuario_id: string | null;
+          p_organizacion_id: string | null;
+        };
+        Returns: boolean;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

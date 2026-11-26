@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createServerClient } from "./supabase-server";
+import { sendPushToProfiles } from "./push";
 import type {
   MySpot,
   OccupiedSpot,
@@ -362,6 +363,122 @@ export async function cancelLoan(
 
   if (error) return { ok: false, error: "No se pudo cancelar el préstamo" };
   return { ok: true };
+}
+
+/**
+ * Cierra los préstamos que ya vencieron y le avisa al departamento.
+ *
+ * Hasta ahora el vencimiento no existía como momento: `estaPrestado` dejaba de
+ * dar `true` y listo. El residente prestaba su estacionamiento por una semana y
+ * **nadie le decía que ya lo tenía de vuelta** — y el caso que de verdad
+ * importa, que el auto prestado siga adentro cuando el plazo se acabó, se
+ * descubría llegando a la casa y encontrando el lugar tomado.
+ *
+ * El cierre **es** la marca: al vaciar `lent_until` el préstamo deja de estar
+ * vencido-sin-avisar, así que no hace falta una columna de "ya avisé" ni que
+ * esto corra una sola vez. Si dos kioscos barren a la vez, el `.eq("lent_until",
+ * …)` hace que solo uno se lleve la fila y solo ese avise.
+ *
+ * Lo llama el pulso de la portería, que es lo más parecido a un reloj que tiene
+ * el edificio: el kiosco queda abierto todo el turno. Si algún día hay que
+ * avisar con el kiosco cerrado, esto mismo se cuelga de un cron.
+ */
+export async function cerrarPrestamosVencidos(
+  buildingId: string
+): Promise<{ cerrados: number; avisados: number }> {
+  const { data: prestados } = await db()
+    .from("parking_spots")
+    .select("id, code, unit_code, lent_until")
+    .eq("building_id", buildingId)
+    .not("lent_until", "is", null);
+
+  const ahora = Date.now();
+  const vencidos = (prestados ?? []).filter((s) => !estaPrestado(s.lent_until, ahora));
+  if (vencidos.length === 0) return { cerrados: 0, avisados: 0 };
+
+  // Quién quedó adentro: es lo que cambia el aviso de "ya es tuyo de nuevo" a
+  // "tu lugar sigue ocupado".
+  const { data: sesiones } = await db()
+    .from("parking_sessions")
+    .select("spot_id, plate")
+    .eq("building_id", buildingId)
+    .is("ended_at", null)
+    .in("spot_id", vencidos.map((s) => s.id));
+
+  const patentePorSpot = new Map((sesiones ?? []).map((s) => [s.spot_id, s.plate]));
+
+  let cerrados = 0;
+  let avisados = 0;
+
+  for (const spot of vencidos) {
+    const { data: cerrado } = await db()
+      .from("parking_spots")
+      .update({ lent_until: null, lent_by: null, lent_at: null })
+      .eq("id", spot.id)
+      .eq("building_id", buildingId)
+      .eq("lent_until", spot.lent_until as string)
+      .select("id");
+
+    if (!cerrado || cerrado.length === 0) continue;
+    cerrados++;
+
+    avisados += await avisarFinDelPrestamo(
+      buildingId,
+      spot.code,
+      spot.unit_code,
+      patentePorSpot.get(spot.id) ?? null
+    );
+  }
+
+  return { cerrados, avisados };
+}
+
+/** El aviso al departamento dueño del estacionamiento. Nunca corta el barrido. */
+async function avisarFinDelPrestamo(
+  buildingId: string,
+  code: string,
+  unitCode: string | null,
+  patenteAdentro: string | null
+): Promise<number> {
+  if (!unitCode) return 0;
+
+  try {
+    const { data: unidades } = await db()
+      .from("residents")
+      .select("id")
+      .eq("building_id", buildingId)
+      .eq("unit_code", unitCode);
+
+    const ids = (unidades ?? []).map((u) => u.id);
+    if (ids.length === 0) return 0;
+
+    const { data: members } = await db()
+      .from("resident_members")
+      .select("profile_id")
+      .in("resident_id", ids);
+
+    const profileIds = Array.from(new Set((members ?? []).map((m) => m.profile_id)));
+    if (profileIds.length === 0) return 0;
+
+    const { sent } = await sendPushToProfiles(profileIds, {
+      title: patenteAdentro
+        ? `Venció el préstamo de ${code}`
+        : `${code} volvió a ser tuyo`,
+      body: patenteAdentro
+        ? `Tu estacionamiento ya no está prestado, pero ${patenteAdentro} sigue adentro. Avísale a la portería si lo necesitas.`
+        : "Se terminó el préstamo. La portería ya no se lo va a dar a las visitas.",
+      url: "/residente",
+      // Un aviso por estacionamiento: si el residente no lo vio, el nuevo pisa
+      // al viejo en vez de acumular dos que dicen lo mismo.
+      tag: `prestamo-${code}`,
+      requireInteraction: false,
+    });
+
+    return sent;
+  } catch {
+    /* el préstamo ya quedó cerrado; el aviso no puede arrastrar el barrido */
+    return 0;
+  }
 }
 
 // ── Autos del departamento ─────────────────────────────────────────

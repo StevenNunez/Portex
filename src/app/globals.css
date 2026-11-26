@@ -34,6 +34,34 @@ html, body {
   to { transform: rotate(360deg); }
 }
 
+/* Foco visible: quien usa teclado (la portería de escritorio, un lector de
+   pantalla) tiene que ver dónde está parado. `:focus-visible` solo se activa
+   con teclado, así que un toque con el dedo no deja el anillo pintado.
+   Va con !important porque muchos campos traen `outline: "none"` en línea
+   —el estilo inline le gana a cualquier regla sin él—. */
+:focus-visible {
+  outline: 2px solid var(--px-ink) !important;
+  outline-offset: 2px !important;
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline-offset: 0 !important;
+  border-color: var(--px-ink) !important;
+}
+
+/* Esqueleto mientras carga una pantalla (los loading.tsx): un brillo suave,
+   nunca un "Cargando…" a pantalla completa. */
+@keyframes px-skel {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+.px-skel {
+  background: var(--px-line);
+  border-radius: 10px;
+  animation: px-skel 1.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;

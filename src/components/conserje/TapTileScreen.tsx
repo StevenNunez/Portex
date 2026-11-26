@@ -18,7 +18,7 @@ import QrScanDrawer from "./QrScanDrawer";
 import SolicitudesDrawer from "./SolicitudesDrawer";
 import AvisosPorteria from "./AvisosPorteria";
 import MiFichaDrawer from "./MiFichaDrawer";
-import { solicitudesEsperando } from "@/app/autoregistro-actions";
+import { pulsoDePorteria } from "@/app/autoregistro-actions";
 import { escucharPush } from "@/lib/push-navegador";
 import type { SolicitudPendiente } from "@/lib/autoregistro-tipos";
 import { NOTICE_LABEL, type NoticeKind } from "@/lib/avisos-tipos";
@@ -103,7 +103,7 @@ export default function TapTileScreen({ initialActivity, initialTodayActivity, i
   // una consulta mínima: recién si cambió se pide la página completa.
   const revisarSolicitudes = useCallback(async () => {
     try {
-      const cuantas = await solicitudesEsperando();
+      const cuantas = await pulsoDePorteria();
       if (cuantas !== solicitudes.length) router.refresh();
     } catch {
       /* sin conexión: se reintenta en el próximo ciclo */

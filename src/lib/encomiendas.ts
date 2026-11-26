@@ -3,6 +3,7 @@ import "server-only";
 import { randomInt, randomUUID } from "node:crypto";
 import { createServerClient } from "./supabase-server";
 import { QR_ENCOMIENDA } from "./qr";
+import { fallo } from "@/lib/errores-servidor";
 
 /**
  * Encomiendas.
@@ -222,7 +223,7 @@ export async function marcarRetirada(
     .eq("status", "pendiente")
     .select("id");
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("marcarRetirada", error) };
   if (!data || data.length === 0) {
     return { ok: false, error: "Esa encomienda ya había sido retirada" };
   }

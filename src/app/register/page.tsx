@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import MarcaPortex from "@/components/MarcaPortex";
+import { mensajeParaPersona } from "@/lib/errores";
 
 const INPUT_STYLE: CSSProperties = {
   width: "100%",
@@ -51,7 +52,7 @@ export default function RegisterPage() {
     });
 
     if (signUpError) {
-      setError(signUpError.message);
+      setError(mensajeParaPersona(signUpError, "registro"));
       setLoading(false);
       return;
     }
@@ -193,7 +194,7 @@ export default function RegisterPage() {
             >
               Nombre completo
             </label>
-            <input
+            <input aria-label="Nombre completo"
               type="text"
               required
               autoComplete="name"
@@ -216,7 +217,7 @@ export default function RegisterPage() {
             >
               Email
             </label>
-            <input
+            <input aria-label="Email"
               type="email"
               required
               autoComplete="email"
@@ -239,7 +240,7 @@ export default function RegisterPage() {
             >
               Contraseña
             </label>
-            <input
+            <input aria-label="Contraseña"
               type="password"
               required
               autoComplete="new-password"
@@ -287,7 +288,7 @@ export default function RegisterPage() {
             href="/terminos"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: "var(--px-mid2)", textDecoration: "underline" }}
+            style={{ color: "var(--px-mid)", textDecoration: "underline" }}
           >
             Términos
           </a>{" "}
@@ -296,7 +297,7 @@ export default function RegisterPage() {
             href="/privacidad"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: "var(--px-mid2)", textDecoration: "underline" }}
+            style={{ color: "var(--px-mid)", textDecoration: "underline" }}
           >
             Política de Privacidad
           </a>

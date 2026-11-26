@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { registerEntry } from "@/app/actions";
-import { useFocusOnOpen, useResetOnOpen } from "@/lib/drawer";
+import { useFocusOnOpen, useResetOnOpen, atributosDeCajon } from "@/lib/drawer";
 import type { ActivityItem } from "@/lib/mock-data";
+import BotonCerrar from "@/components/BotonCerrar";
+import { mensajeParaPersona } from "@/lib/errores";
 
 type Dir = "in" | "out";
 
@@ -24,10 +26,11 @@ export default function VehiculoDrawer({ open, onClose, onRegistered }: Props) {
   const [unit, setUnit]     = useState("");
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useResetOnOpen(open, () => {
-    setPlate(""); setDir(null); setUnit(""); setSaving(false); setSuccess(false);
+    setPlate(""); setDir(null); setUnit(""); setSaving(false); setSuccess(false); setSaveError(null);
   });
   useFocusOnOpen(open, inputRef);
 
@@ -41,6 +44,7 @@ export default function VehiculoDrawer({ open, onClose, onRegistered }: Props) {
   async function handleConfirm() {
     if (!plate.trim() || !dir) return;
     setSaving(true);
+    setSaveError(null);
     try {
       const result = await registerEntry({
         type: "vehicle",
@@ -60,12 +64,19 @@ export default function VehiculoDrawer({ open, onClose, onRegistered }: Props) {
         by: result.recorded_by ?? "",
       });
       setSuccess(true);
+    } catch (err) {
+      setSaveError(`No se guardó el vehículo. ${mensajeParaPersona(err, "registrar vehiculo")}`);
     } finally {
       setSaving(false);
     }
   }
 
   const canConfirm = plate.trim().length >= 3 && dir !== null;
+  const queFalta = plate.trim().length < 3
+    ? "Falta la patente"
+    : dir === null
+      ? "Falta elegir si entra o sale"
+      : null;
 
   const DRAWER_STYLE: React.CSSProperties = {
     position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
@@ -80,7 +91,7 @@ export default function VehiculoDrawer({ open, onClose, onRegistered }: Props) {
   return (
     <>
       <div style={{ position: "fixed", inset: 0, background: "rgba(20,15,8,0.45)", zIndex: 40, opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.2s" }} />
-      <div style={DRAWER_STYLE}>
+      <div {...atributosDeCajon(open, "Vehículo")} style={DRAWER_STYLE}>
         {/* Handle */}
         <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 40, height: 4, borderRadius: 2, background: "var(--px-line)" }} />
 
@@ -89,7 +100,7 @@ export default function VehiculoDrawer({ open, onClose, onRegistered }: Props) {
           {!success && (
             <>
               <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em" }}>Vehículo</h2>
-              <button onClick={onClose} style={{ background: "var(--px-paper)", border: "1px solid var(--px-line)", borderRadius: 20, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--px-mid)", fontSize: 18 }}>×</button>
+              <BotonCerrar onClick={onClose} />
             </>
           )}
         </div>
@@ -109,7 +120,7 @@ export default function VehiculoDrawer({ open, onClose, onRegistered }: Props) {
             {/* Plate */}
             <div>
               <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, letterSpacing: "0.08em", color: "var(--px-mid)", marginBottom: 8 }}>PLACA</div>
-              <input
+              <input aria-label="Patente"
                 ref={inputRef}
                 type="text"
                 value={plate}
@@ -145,7 +156,7 @@ export default function VehiculoDrawer({ open, onClose, onRegistered }: Props) {
             {/* Optional unit */}
             <div>
               <div style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, letterSpacing: "0.08em", color: "var(--px-mid)", marginBottom: 8 }}>UNIDAD · OPCIONAL</div>
-              <input
+              <input aria-label="Unidad (opcional)"
                 type="text"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value.toUpperCase())}
@@ -156,9 +167,16 @@ export default function VehiculoDrawer({ open, onClose, onRegistered }: Props) {
 
             <div style={{ flex: 1 }} />
 
+            {saveError && (
+              <div role="alert" style={{ marginBottom: 12, padding: "11px 14px", borderRadius: 12, background: "oklch(0.96 0.03 25)", border: "1px solid var(--px-alert)", fontSize: 13.5, color: "var(--px-alert)" }}>
+                  {saveError}
+                </div>
+            )}
+
             <button
               onClick={handleConfirm}
               disabled={!canConfirm || saving}
+              aria-describedby={queFalta ? "vehiculo-que-falta" : undefined}
               style={{
                 width: "100%", padding: "16px", background: canConfirm && !saving ? "var(--px-ink)" : "var(--px-line)",
                 color: "var(--px-bone)", border: "none", borderRadius: 12,
@@ -168,6 +186,11 @@ export default function VehiculoDrawer({ open, onClose, onRegistered }: Props) {
             >
               {saving ? "Guardando…" : "Registrar vehículo"}
             </button>
+            {queFalta && !saving && (
+              <div id="vehiculo-que-falta" aria-live="polite" style={{ marginTop: 10, fontSize: 14, color: "var(--px-ink2)", textAlign: "center" }}>
+                {queFalta}
+              </div>
+            )}
           </div>
         )}
       </div>

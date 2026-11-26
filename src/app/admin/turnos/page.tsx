@@ -19,7 +19,7 @@ const STATUS_COLOR: Record<string, string> = {
   activo:      "var(--px-ok)",
   completado:  "var(--px-mid)",
   programado:  "oklch(0.55 0.14 250)",
-  libre:       "var(--px-mid2)",
+  libre:       "var(--px-mid)",
   sin_cubrir:  "var(--px-alert)",
 };
 

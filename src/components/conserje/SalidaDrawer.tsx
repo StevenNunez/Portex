@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { registerEntry } from "@/app/actions";
 import { IconSearch } from "@/components/icons";
-import { useFocusOnOpen, useResetOnOpen } from "@/lib/drawer";
+import { useFocusOnOpen, useResetOnOpen, atributosDeCajon } from "@/lib/drawer";
 import type { ActivityItem } from "@/lib/mock-data";
+import BotonCerrar from "@/components/BotonCerrar";
+import { mensajeParaPersona } from "@/lib/errores";
 
 interface Props {
   open: boolean;
@@ -36,12 +38,13 @@ export default function SalidaDrawer({ open, onClose, onRegistered, recentActivi
   const [selected, setSelected] = useState<ActivityItem | null>(null);
   const [saving, setSaving]     = useState(false);
   const [success, setSuccess]   = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [manualName, setManualName] = useState("");
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   useResetOnOpen(open, () => {
-    setQuery(""); setSelected(null); setSaving(false); setSuccess(false); setManualName("");
+    setQuery(""); setSelected(null); setSaving(false); setSuccess(false); setManualName(""); setSaveError(null);
   });
   useFocusOnOpen(open, inputRef);
 
@@ -77,6 +80,7 @@ export default function SalidaDrawer({ open, onClose, onRegistered, recentActivi
   async function handleConfirm() {
     if (!whoToRegister) return;
     setSaving(true);
+    setSaveError(null);
     try {
       const result = await registerEntry({
         type: "out",
@@ -96,6 +100,8 @@ export default function SalidaDrawer({ open, onClose, onRegistered, recentActivi
         by: result.recorded_by ?? "",
       });
       setSuccess(true);
+    } catch (err) {
+      setSaveError(`No se guardó la salida. ${mensajeParaPersona(err, "registrar salida")}`);
     } finally {
       setSaving(false);
     }
@@ -104,7 +110,7 @@ export default function SalidaDrawer({ open, onClose, onRegistered, recentActivi
   return (
     <>
       <div style={{ position: "fixed", inset: 0, background: "rgba(20,15,8,0.45)", zIndex: 40, opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.2s" }} />
-      <div style={{ ...DRAWER, transform: open ? "translateY(0)" : "translateY(100%)", transition: "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)", boxShadow: "0 -4px 40px -8px rgba(20,15,8,0.25)" }}>
+      <div {...atributosDeCajon(open, "Marcar salida")} style={{ ...DRAWER, transform: open ? "translateY(0)" : "translateY(100%)", transition: "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)", boxShadow: "0 -4px 40px -8px rgba(20,15,8,0.25)" }}>
 
         <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 40, height: 4, borderRadius: 2, background: "var(--px-line)" }} />
 
@@ -114,7 +120,7 @@ export default function SalidaDrawer({ open, onClose, onRegistered, recentActivi
               <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em" }}>
                 {selected ? "Confirmar salida" : "¿Quién sale?"}
               </h2>
-              <button onClick={onClose} style={{ background: "var(--px-paper)", border: "1px solid var(--px-line)", borderRadius: 20, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--px-mid)", fontSize: 18 }}>×</button>
+              <BotonCerrar onClick={onClose} />
             </>
           )}
         </div>
@@ -193,6 +199,7 @@ export default function SalidaDrawer({ open, onClose, onRegistered, recentActivi
                   <input
                     value={manualName}
                     onChange={(e) => setManualName(e.target.value)}
+                    aria-label="Nombre de quien sale"
                     placeholder="Nombre de quien sale…"
                     style={{ flex: 1, padding: "10px 14px", fontSize: 14, fontFamily: "var(--font-inter-tight), Inter, system-ui, sans-serif", background: "white", border: "1px solid var(--px-line)", borderRadius: 10, outline: "none", color: "var(--px-ink)" }}
                   />
@@ -204,6 +211,11 @@ export default function SalidaDrawer({ open, onClose, onRegistered, recentActivi
                     {saving ? "…" : "Registrar ↑"}
                   </button>
                 </div>
+                {saveError && (
+                  <div role="alert" style={{ marginTop: 10, padding: "11px 14px", borderRadius: 12, background: "oklch(0.96 0.03 25)", border: "1px solid var(--px-alert)", fontSize: 13.5, color: "var(--px-alert)" }}>
+                    {saveError}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -234,6 +246,11 @@ export default function SalidaDrawer({ open, onClose, onRegistered, recentActivi
               </div>
 
               <div style={{ flex: 1 }} />
+              {saveError && (
+                <div role="alert" style={{ marginBottom: 12, padding: "11px 14px", borderRadius: 12, background: "oklch(0.96 0.03 25)", border: "1px solid var(--px-alert)", fontSize: 13.5, color: "var(--px-alert)" }}>
+                  {saveError}
+                </div>
+              )}
               <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={() => setSelected(null)} style={{ padding: "14px 18px", background: "white", border: "1px solid var(--px-line)", borderRadius: 12, cursor: "pointer", font: "inherit", fontSize: 14, color: "var(--px-ink2)" }}>
                   ← Atrás

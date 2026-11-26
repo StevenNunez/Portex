@@ -78,7 +78,7 @@ export default function FormularioAcceso({
           haga te llega un correo a <strong style={{ color: "var(--px-ink)" }}>{email}</strong>{" "}
           para crear tu contraseña.
         </p>
-        <p style={{ margin: "14px 0 0", fontSize: 12.5, color: "var(--px-mid2)", lineHeight: 1.6 }}>
+        <p style={{ margin: "14px 0 0", fontSize: 12.5, color: "var(--px-mid)", lineHeight: 1.6 }}>
           Si no llega, pregúntale al conserje — es él quien aprueba.
         </p>
       </div>

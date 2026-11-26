@@ -107,43 +107,44 @@ export default function AddAvisoButton({ unidades }: { unidades: string[] }) {
       <Drawer open={open} onClose={() => setOpen(false)} title="Publicar aviso" subtitle="LLEGA AL TELÉFONO DE LOS RESIDENTES">
         <form onSubmit={guardar}>
           <Row>
-            <label style={LABEL}>Tipo *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Tipo *</span>
             <select value={kind} onChange={(e) => setKind(e.target.value as NoticeKind)} style={{ ...FIELD, cursor: "pointer" }}>
               {NOTICE_KINDS.map((k) => (
                 <option key={k} value={k}>{NOTICE_LABEL[k]}</option>
               ))}
-            </select>
+            </select></label>
           </Row>
 
           <Row>
-            <label style={LABEL}>¿Qué pasa? *</label>
+            <label style={{ display: "block" }}><span style={LABEL}>¿Qué pasa? *</span>
             <input
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ej: Corte programado por reparación de matriz"
               style={FIELD}
-            />
+            /></label>
           </Row>
 
           <Row>
-            <label style={LABEL}>Detalle</label>
+            <label style={{ display: "block" }}><span style={LABEL}>Detalle</span>
             <input
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="Ej: Guarda agua en la mañana. Afecta a las torres A y B."
               style={FIELD}
-            />
+            /></label>
           </Row>
 
           <Row>
-            <label style={LABEL}>¿A quién le toca? *</label>
-            <div style={{ display: "flex", gap: 8 }}>
+            <span id="aviso-alcance" style={LABEL}>¿A quién le toca? *</span>
+            <div role="group" aria-labelledby="aviso-alcance" style={{ display: "flex", gap: 8 }}>
               {(["edificio", "unidad"] as const).map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setScope(s)}
+                  aria-pressed={scope === s}
                   style={{
                     flex: 1, padding: "10px", borderRadius: 8, cursor: "pointer",
                     background: scope === s ? "var(--px-ink)" : "white",
@@ -160,7 +161,7 @@ export default function AddAvisoButton({ unidades }: { unidades: string[] }) {
 
           {scope === "unidad" && (
             <Row>
-              <label style={LABEL}>Departamento *</label>
+              <label style={{ display: "block" }}><span style={LABEL}>Departamento *</span>
               <input
                 required
                 list="unidades-aviso"
@@ -168,7 +169,7 @@ export default function AddAvisoButton({ unidades }: { unidades: string[] }) {
                 onChange={(e) => setUnitCode(e.target.value)}
                 placeholder="Ej: A · 1204"
                 style={FIELD}
-              />
+              /></label>
               <datalist id="unidades-aviso">
                 {unidades.map((u) => <option key={u} value={u} />)}
               </datalist>
@@ -177,12 +178,12 @@ export default function AddAvisoButton({ unidades }: { unidades: string[] }) {
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
             <Row>
-              <label style={LABEL}>Empieza</label>
-              <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} style={FIELD} />
+              <label style={{ display: "block" }}><span style={LABEL}>Empieza</span>
+              <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} style={FIELD} /></label>
             </Row>
             <Row>
-              <label style={LABEL}>Termina</label>
-              <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} style={FIELD} />
+              <label style={{ display: "block" }}><span style={LABEL}>Termina</span>
+              <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} style={FIELD} /></label>
             </Row>
           </div>
 

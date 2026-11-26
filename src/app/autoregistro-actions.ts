@@ -13,7 +13,9 @@ import {
 } from "@/lib/autoregistro";
 import { invitarResidente, organizacionDelUsuario } from "@/lib/invitaciones";
 import { unidadCanonica } from "@/lib/residentes";
+import { cerrarPrestamosVencidos } from "@/lib/parking";
 import type { Database } from "@/lib/database.types";
+import { fallo } from "@/lib/errores-servidor";
 
 /**
  * El autorregistro: el vecino pide, la portería decide.
@@ -168,10 +170,28 @@ export async function pedirAcceso(input: {
   return { ok: true };
 }
 
-/** La portería pregunta esto cada tanto para no quedarse con datos viejos. */
-export async function solicitudesEsperando(): Promise<number> {
+/**
+ * El pulso del kiosco de portería, cada 30 segundos.
+ *
+ * Devuelve cuántas solicitudes esperan —con eso la pantalla decide si vale la
+ * pena recargarse— y de paso **cierra los préstamos de estacionamiento
+ * vencidos**, avisándole al departamento. La portería es lo más parecido a un
+ * reloj que tiene el edificio: queda abierta todo el turno, así que es el único
+ * lugar donde "ya pasó la fecha" se puede notar sin montar un cron.
+ *
+ * El barrido va en try/catch aparte: si falla, el conserje igual tiene que ver
+ * sus solicitudes.
+ */
+export async function pulsoDePorteria(): Promise<number> {
   const ctx = await getRevisor();
   if (!ctx) return 0;
+
+  try {
+    await cerrarPrestamosVencidos(ctx.buildingId);
+  } catch {
+    /* se reintenta en el próximo pulso */
+  }
+
   return contarSolicitudesPendientes(ctx.buildingId);
 }
 
@@ -274,7 +294,7 @@ export async function rechazarSolicitud(input: {
     .eq("building_id", ctx.buildingId)
     .eq("status", "pendiente");
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("rechazarSolicitud", error) };
 
   revalidatePath("/conserje");
   return { ok: true };

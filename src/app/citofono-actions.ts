@@ -23,6 +23,7 @@ import { normalizeRut } from "@/lib/rut";
 import { startOfDayUtc, todayInChile } from "@/lib/fecha";
 import { addVehicle, cancelLoan, lendSpot, removeVehicle } from "@/lib/parking";
 import type { Database } from "@/lib/database.types";
+import { esLimiteDeEnvio, fallo } from "@/lib/errores-servidor";
 
 // ── Sesión ────────────────────────────────────────────────────────
 
@@ -82,6 +83,17 @@ async function getCtx() {
 
 // ── Lado conserje ─────────────────────────────────────────────────
 
+/**
+ * Lo de portería —ver pases, pedir y registrar autorizaciones— es del
+ * conserje y del administrador. Un residente con sesión no puede usarlo:
+ * vería quién tiene pase en otras unidades y podría mandarles avisos.
+ */
+async function getPorteriaCtx() {
+  const ctx = await getCtx();
+  if (!ctx || (ctx.role !== "conserje" && ctx.role !== "admin")) return null;
+  return ctx;
+}
+
 export interface PassCheck {
   hasPass: boolean;
   passId?: string;
@@ -101,7 +113,7 @@ export async function checkPassForVisitor(input: {
   visitorName: string;
   visitorRut?: string;
 }): Promise<PassCheck> {
-  const ctx = await getCtx();
+  const ctx = await getPorteriaCtx();
   if (!ctx?.buildingId) return { hasPass: false, canRequest: false };
 
   const db = createServiceClient();
@@ -142,10 +154,21 @@ export async function createAccessRequest(input: {
   plate?: string;
   kind?: "visita" | "delivery" | "proveedor";
 }): Promise<{ ok: boolean; requestId?: string; expiresAt?: string; error?: string }> {
-  const ctx = await getCtx();
+  const ctx = await getPorteriaCtx();
   if (!ctx?.buildingId) return { ok: false, error: "No autenticado" };
 
   const db = createServiceClient();
+
+  // La unidad tiene que ser de este edificio: si no, se podía mandar el
+  // timbre del citófono a los residentes de otro condominio.
+  const { data: unidad } = await db
+    .from("residents")
+    .select("id")
+    .eq("id", input.residentId)
+    .eq("building_id", ctx.buildingId)
+    .maybeSingle();
+  if (!unidad) return { ok: false, error: "Esa unidad no es de este edificio" };
+
   const expiresAt = new Date(Date.now() + REQUEST_TIMEOUT_SECONDS * 1000).toISOString();
 
   const { data, error } = await db
@@ -186,7 +209,7 @@ export async function createAccessRequest(input: {
 
 /** Marca el pase como ocupado cuando el visitante efectivamente entró. */
 export async function consumePass(passId: string): Promise<{ ok: boolean }> {
-  const ctx = await getCtx();
+  const ctx = await getPorteriaCtx();
   if (!ctx?.buildingId) return { ok: false };
 
   const db = createServiceClient();
@@ -233,7 +256,7 @@ export async function consumePass(passId: string): Promise<{ ok: boolean }> {
 export async function pollAccessRequest(
   requestId: string
 ): Promise<{ status: AccessRequestRow["status"]; respondedBy: string | null } | null> {
-  const ctx = await getCtx();
+  const ctx = await getPorteriaCtx();
   if (!ctx?.buildingId) return null;
 
   const req = await getRequest(requestId);
@@ -257,7 +280,7 @@ export async function pollAccessRequest(
 export async function registerApprovedRequest(
   requestId: string
 ): Promise<{ ok: boolean; error?: string }> {
-  const ctx = await getCtx();
+  const ctx = await getPorteriaCtx();
   if (!ctx?.buildingId) return { ok: false, error: "No autenticado" };
 
   const req = await getRequest(requestId);
@@ -311,7 +334,7 @@ export async function registerApprovedRequest(
 
 /** Cancelar la espera (el visitante se fue, el conserje se arrepintió). */
 export async function cancelAccessRequest(requestId: string): Promise<{ ok: boolean }> {
-  const ctx = await getCtx();
+  const ctx = await getPorteriaCtx();
   if (!ctx?.buildingId) return { ok: false };
 
   const db = createServiceClient();
@@ -360,7 +383,7 @@ export async function respondAccessRequest(
     .eq("id", requestId)
     .eq("status", "pendiente");
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("respondAccessRequest", error) };
   return { ok: true };
 }
 
@@ -499,7 +522,7 @@ export async function savePushSubscription(input: {
       { onConflict: "endpoint" }
     );
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("savePushSubscription", error) };
   return { ok: true };
 }
 
@@ -583,16 +606,22 @@ export async function inviteResidentsBulk(input: {
     const res = await invitarResidente(ctx.buildingId, organizationId, r.id, r.email);
 
     if (!res.ok) {
-      const motivo = res.error ?? "Error desconocido";
+      const motivo = res.error ?? "No se pudo invitar";
 
       // El proveedor de correo corta por cantidad y por hora. Seguir
       // intentando no manda ni uno más: solo llena la pantalla de 270 errores
       // iguales y deja al administrador sin saber en cuál quedó.
-      if (/rate limit|too many requests|429|over_email_send_rate/i.test(motivo)) {
+      // `esLimiteDeEnvio` reconoce el corte en el idioma de SMTP (421/450/452,
+      // cuota diaria) y también el mensaje ya traducido que devuelve
+      // `invitarPorCorreo`.
+      if (esLimiteDeEnvio(motivo)) {
         sinIntentar = input.residentes.length - i;
+        // El tope del proveedor es **por día**, no por minuto: decirle "en un
+        // rato" al administrador lo deja apretando el botón contra una pared.
         corte =
-          `Se alcanzó el límite de correos del proveedor. Salieron ${enviadas} y quedaron ` +
-          `${sinIntentar} sin invitar; vuelve a apretar el botón en un rato y sigue por donde iba.`;
+          `Se alcanzó el límite diario de correos del proveedor. Salieron ${enviadas} y ` +
+          `quedaron ${sinIntentar} sin invitar. Mañana vuelve a apretar el botón: sigue ` +
+          `por donde iba y no le manda dos veces a nadie.`;
         break;
       }
 

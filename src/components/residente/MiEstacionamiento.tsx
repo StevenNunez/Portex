@@ -168,7 +168,7 @@ function SpotCard({ spot }: { spot: MySpot }) {
               );
             })}
           </div>
-          <input
+          <input aria-label="Prestado hasta"
             type="date"
             value={hasta}
             min={todayInChile()}
@@ -315,14 +315,14 @@ export default function MiEstacionamiento({
         )}
 
         <form onSubmit={agregarAuto} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <input
+          <input aria-label="Patente"
             value={plate}
             onChange={(e) => setPlate(e.target.value.toUpperCase())}
             placeholder="Patente · ABCD12"
             maxLength={8}
             style={{ ...INPUT, fontFamily: "var(--font-jetbrains-mono)", letterSpacing: "0.05em" }}
           />
-          <input
+          <input aria-label="Marca y color (opcional)"
             value={model}
             onChange={(e) => setModel(e.target.value)}
             placeholder="Marca y color · opcional"

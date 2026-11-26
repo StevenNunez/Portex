@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getUserContext } from "@/lib/user-context";
 import { createServerClient as createServiceClient } from "@/lib/supabase-server";
+import { fallo } from "@/lib/errores-servidor";
 
 /**
  * La configuración que antes solo se podía mirar.
@@ -44,7 +45,7 @@ export async function guardarEdificio(input: {
     })
     .eq("id", ctx.buildingId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("guardarEdificio", error) };
 
   const org = input.orgName?.trim();
   if (org && ctx.orgId && org !== ctx.orgName) {
@@ -52,7 +53,7 @@ export async function guardarEdificio(input: {
       .from("organizations")
       .update({ name: org })
       .eq("id", ctx.orgId);
-    if (orgError) return { ok: false, error: orgError.message };
+    if (orgError) return { ok: false, error: await fallo("guardarEdificio", orgError) };
   }
 
   revalidatePath("/admin/config");
@@ -73,7 +74,7 @@ export async function guardarMiCuenta(input: { name: string }): Promise<Resultad
     .update({ full_name: nombre })
     .eq("id", ctx.userId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await fallo("guardarMiCuenta", error) };
 
   revalidatePath("/admin/config");
   revalidatePath("/admin");

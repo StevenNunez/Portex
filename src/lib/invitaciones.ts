@@ -1,7 +1,6 @@
 import "server-only";
 import { createServerClient as createServiceClient } from "@/lib/supabase-server";
-import { buscarUsuarioPorEmail } from "@/lib/auth-admin";
-import { appUrl } from "@/lib/app-url";
+import { invitarPorCorreo } from "@/lib/invitacion-correo";
 
 /**
  * Invitar a un residente al portal.
@@ -47,35 +46,30 @@ export async function invitarResidente(
     .maybeSingle();
 
   if (!resident) return { ok: false, error: "Ese residente no es de tu edificio" };
+  if (!organizationId) return { ok: false, error: "Tu cuenta no tiene una organización asociada" };
 
-  const metadatos = {
-    role: "residente",
+  const invitacion = {
+    role: "residente" as const,
     organization_id: organizationId,
     full_name: nombre?.trim() || resident.name,
     resident_id: resident.id,
   };
 
-  const { data: invited, error } = await db.auth.admin.inviteUserByEmail(email, {
-    data: metadatos,
-    // A `/invitacion`, no al callback: el enlace del correo ya no gasta el
-    // token al abrirse. Ver supabase/email-templates/invite.html.
-    redirectTo: `${appUrl()}/invitacion`,
+  const res = await invitarPorCorreo({
+    email,
+    nombre: nombre?.trim() || resident.name,
+    invitacion,
   });
 
-  if (error) {
-    // Ya tenía cuenta —por ejemplo, porque arrienda en otra unidad del mismo
-    // condominio—. No se le manda nada, pero sí se lo liga al departamento:
-    // entra con la contraseña que ya tiene.
-    if (error.message.toLowerCase().includes("already been registered")) {
-      const existente = await buscarUsuarioPorEmail(email);
-      if (!existente) {
-        return { ok: false, error: "Ese correo ya tiene cuenta, pero no se pudo encontrar para ligarla." };
-      }
-      await ligarResidenteAPerfil(resident.id, existente.id, resident.building_id);
-      await marcarInvitado(resident.id, email);
-      return { ok: true, yaTenia: true };
-    }
-    return { ok: false, error: error.message };
+  if (res.estado === "error") return { ok: false, error: res.error };
+
+  // Ya usa Portex —por ejemplo, porque arrienda en otra unidad del mismo
+  // condominio—. No se le manda nada, pero sí se lo liga al departamento:
+  // entra con la contraseña que ya tiene.
+  if (res.estado === "ya-tiene-cuenta") {
+    await ligarResidenteAPerfil(resident.id, res.usuarioId, resident.building_id);
+    await marcarInvitado(resident.id, email);
+    return { ok: true, yaTenia: true };
   }
 
   // Ojo: acá **no** se liga la cuenta al departamento. Invitar solo manda un
@@ -86,7 +80,6 @@ export async function invitarResidente(
   // Ligarlo antes hacía dos daños: el padrón mostraba "con cuenta" a quien
   // nunca abrió el correo, y la portería creía que esa unidad podía responder
   // el citófono cuando no había a quién avisarle.
-  void invited;
   await marcarInvitado(resident.id, email);
 
   return { ok: true };

@@ -238,7 +238,7 @@ export default function PerfilDepto({ perfil }: { perfil: PerfilVisible }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div>
               <div style={{ ...MONO, marginBottom: 6 }}>TU NOMBRE</div>
-              <input
+              <input aria-label="Tu nombre"
                 value={datos.name}
                 onChange={(e) => setDatos({ ...datos, name: e.target.value })}
                 style={INPUT}
@@ -246,7 +246,7 @@ export default function PerfilDepto({ perfil }: { perfil: PerfilVisible }) {
             </div>
             <div>
               <div style={{ ...MONO, marginBottom: 6 }}>TELÉFONO</div>
-              <input
+              <input aria-label="Teléfono"
                 value={datos.contact}
                 onChange={(e) => setDatos({ ...datos, contact: e.target.value })}
                 placeholder="+56 9 1234 5678"
@@ -256,7 +256,7 @@ export default function PerfilDepto({ perfil }: { perfil: PerfilVisible }) {
             </div>
             <div>
               <div style={{ ...MONO, marginBottom: 6 }}>TU RUT</div>
-              <input
+              <input aria-label="Tu RUT"
                 value={datos.rut}
                 onChange={(e) => setDatos({ ...datos, rut: formatRutInput(e.target.value) })}
                 placeholder="12.345.678-9"
@@ -334,13 +334,13 @@ export default function PerfilDepto({ perfil }: { perfil: PerfilVisible }) {
         )}
 
         <div style={{ display: "flex", gap: 8 }}>
-          <input
+          <input aria-label="Nombre del integrante"
             value={nuevoIntegrante.name}
             onChange={(e) => setNuevoIntegrante({ ...nuevoIntegrante, name: e.target.value })}
             placeholder="Nombre"
             style={{ ...INPUT, flex: 2 }}
           />
-          <input
+          <input aria-label="Parentesco"
             value={nuevoIntegrante.relationship}
             onChange={(e) => setNuevoIntegrante({ ...nuevoIntegrante, relationship: e.target.value })}
             placeholder="Hijo, pareja…"
@@ -399,13 +399,13 @@ export default function PerfilDepto({ perfil }: { perfil: PerfilVisible }) {
         </div>
 
         <div style={{ display: "flex", gap: 8 }}>
-          <input
+          <input aria-label="Nombre de la mascota"
             value={nuevaMascota.name}
             onChange={(e) => setNuevaMascota({ ...nuevaMascota, name: e.target.value })}
             placeholder="Nombre"
             style={{ ...INPUT, flex: 1.4 }}
           />
-          <input
+          <input aria-label="Raza o tamaño"
             value={nuevaMascota.notes}
             onChange={(e) => setNuevaMascota({ ...nuevaMascota, notes: e.target.value })}
             placeholder="Raza, tamaño…"
